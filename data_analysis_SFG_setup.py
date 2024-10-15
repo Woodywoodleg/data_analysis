@@ -187,8 +187,6 @@ class SFG_IR_SFG_power_dependence():
 	def fit_to_peak(self, spectrum, type='Gaussian', A=None, x_0=None, sigma=None, gamma=None):
 		pass
 
-
-
 	def plot_spectra(self):
 		fig = plt.figure()
 		gs = GridSpec(1,1, figure=fig)
