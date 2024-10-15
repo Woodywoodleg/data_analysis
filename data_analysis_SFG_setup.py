@@ -231,7 +231,6 @@ class SFG_IR_SFG_power_dependence():
 		fig.set_tight_layout(True)
 		fig.show()
 
-
 class SFG_visible_PL_power_dependence():
 	def __init__(self, path_to_data):
 		self.path_to_data = path_to_data
