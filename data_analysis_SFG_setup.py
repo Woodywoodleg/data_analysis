@@ -78,10 +78,11 @@ class Photoluminescence_spectrum():
 		fig.set_tight_layout(True)
 		fig.show()
 
-class SFG_IR_SFG_power_dependence():
-	def __init__(self, path_to_data, path_to_data_wavelength):
+class SFG_power_dependence():
+	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR'):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
+		self.scan_type = scan_type
 		self.cd_script = os.getcwd() # Get directory containing script
 		self.load_data()
 		self.convert_column_to_watts()
@@ -99,7 +100,10 @@ class SFG_IR_SFG_power_dependence():
 			self.all_files.append(file) # Appends files found
 
 		try:
-			SFG_files = [s for s in self.all_files if re.search('.?SFG.+', s)]
+			if self.scan_type == 'IR':
+				SFG_files = [s for s in self.all_files if re.search('.?SFG.+', s)]
+			elif self.scan_type == 'PL':
+				SFG_files = [s for s in self.all_files if re.search('.?PL.+', s)]
 
 		except IndexError:
 			print('Error: File not found!')
@@ -224,7 +228,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(self.signal.iloc[:, i], label=self.signal.columns[i]+' W')
 		ax.set_xlabel('Pixel')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -239,7 +243,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i]+' W')
 		ax.set_xlabel('Wavelength [nm]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -262,119 +266,6 @@ class SFG_IR_SFG_power_dependence():
 		fig.set_tight_layout(True)
 		fig.show()
 		return fig
-
-class SFG_visible_PL_power_dependence():
-	def __init__(self, path_to_data):
-		self.path_to_data = path_to_data
-		self.cd_script = os.getcwd() # Get directory containing script
-		self.load_data()
-		self.change_cd_back()
-
-	def change_cd_back(self):
-		os.chdir(self.cd_script) # Change directory back to where the script is located
-
-	def load_data(self):
-		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
-
-		self.all_files = [] # Create empty array to contain all txt files in the directory
-		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
-			self.all_files.append(file) # Appends files found
-
-		try:
-			PL_files = [s for s in self.all_files if re.search('.?PL.+', s)]
-		
-		except IndexError:
-			print('Error: File not found!')
-			sys.exit()
-
-		self.signal, self.backround, self.signal_raw = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-		if len(SFG_files) >= 2:
-			PL_files.sort()
-			PL_files_grouped = [PL_files[i:i+2] for i in range(0, len(PL_files), 2)]
-
-			signal_raw, background_raw = pd.DataFrame(), pd.DataFrame()
-
-			for i in range(len(PL_files_grouped)):
-				signal_file = [s for s in PL_files_grouped[i] if re.search('.?BinArea2of2.+', s)]
-				background_file = [s for s in PL_files_grouped[i] if re.search('.?BinArea1of2.+', s)]
-
-				power_match = re.search(r'(\d+)(nW|µW|mW|W)', signal_file[0])
-
-				if power_match:
-					power = power_match.group(0)
-				else:
-					continue
-
-				signal = pd.read_csv(signal_file[0], sep='\t', header=None)
-				background = pd.read_csv(background_file[0], sep='\t', header=None)
-				self._averages = signal.shape[1]
-
-				names = []
-				for j in range(self._averages):
-					names.append('Trace '+str(j+1))
-
-				signal_raw, background_raw = signal.set_axis(names, axis=1), background.set_axis(names, axis=1)
-
-				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
-
-				self.signal[power], self.backround[power] = signal_avg - background_avg, background_avg
-
-				self.signal_raw[power] = self.signal[power]
-
-				# Code for correcting error peaks
-				peaks, properties = find_peaks(abs(self.signal[power]), height=height, prominence=prominence)
-
-				for peak in peaks:                                                                                                                                                                                                       
-					left_value = self.signal[power].iloc[peak - 2]                                                                                                                                                                 
-					right_value = self.signal[power].iloc[peak + 2]                                                                                                                                                                
-					if abs(self.signal[power].iloc[peak]) > abs(left_value) + threshold and abs(self.signal[power].iloc[peak]) > abs(right_value) + threshold:                                                               
-						for i in range(neighbours):                                                                                                                                                                                               
-							self.signal[power].iloc[peak-i] = left_value / 2                                                                                                                                                       
-							self.signal[power].iloc[peak+i] = left_value / 2   
-
-		elif len(PL_files) < 2:
-			print('Error: Appears to be missing either background or signal file.')
-			sys.exit()
-		else:
-			print('Please check input - file not found!')
-			sys.exit()
-
-		return self.signal
-
-	def load_data_wavelength_axis(self):
-		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
-
-		self.all_files = [] # Create empty array to contain all txt files in the directory
-		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
-			self.all_files.append(file) # Appends files found
-
-		try:
-			Ne_files = [s for s in self.all_files if re.search('.?Ne.+', s)]
-
-		except IndexError:
-			print('Error: File not found!')
-			sys.exit()
-
-		self.wavelength_100um = pd.read_csv([s for s in Ne_files if re.search('.?100um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
-		self.wavelength_200um = pd.read_csv([s for s in Ne_files if re.search('.?200um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
-
-		return self.wavelength_100um, self.wavelength_200um
-
-
-	def plot_spectra(self):
-		fig = plt.figure()
-		gs = GridSpec(1,1, figure=fig)
-
-		ax = fig.add_subplot(gs[0,0])
-		for i in range(self.signal.shape[1]):
-			plt.plot(self.signal.iloc[:, i], label=slf.signal.columns[i])
-		plt.set_xlabel('Pixel')
-		plt.set_ylabel('Intensity [a.u.]')
-		plt.legend()
-
-		fig.set_tight_layout(True)
-		fig.show()
 
 class SFG_load_spectrum_single():
 	def __init__(self, path_to_data_Bin1, path_to_data_Bin2):
@@ -443,7 +334,7 @@ if __name__ == "__main__":
 	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3')
 	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
 
-	sfg = SFG_IR_SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
+	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
 
 
 
