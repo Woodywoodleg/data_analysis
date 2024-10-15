@@ -90,7 +90,7 @@ class SFG_IR_SFG_power_dependence():
 	def change_cd_back(self):
 		os.chdir(self.cd_script) # Change directory back to where the script is located
 
-	def load_data(self, height=35, prominence=30, threshold=30, neighbours=5):
+	def load_data(self):
 		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
 
 		self.all_files = [] # Create empty array to contain all txt files in the directory
@@ -139,18 +139,6 @@ class SFG_IR_SFG_power_dependence():
 
 				self.signal_raw[power] = self.signal[power]
 
-				# Code for correcting error peaks
-				peaks, properties = find_peaks(abs(self.signal[power]), height=height, prominence=prominence)
-
-				for peak in peaks:                                                                                                                                                                                                       
-					left_value = self.signal[power].iloc[peak - 2]                                                                                                                                                                 
-					right_value = self.signal[power].iloc[peak + 2]                                                                                                                                                                
-					if abs(self.signal[power].iloc[peak]) > abs(left_value) + threshold and abs(self.signal[power].iloc[peak]) > abs(right_value) + threshold:                                                               
-						for i in range(neighbours):                                                                                                                                                                                               
-							self.signal[power].iloc[peak-i] = left_value / 2                                                                                                                                                       
-							self.signal[power].iloc[peak+i] = left_value / 2   
-
-
 		elif len(PL_files) < 2:
 			print('Error: Appears to be missing either background or signal file.')
 			sys.exit()
@@ -159,6 +147,20 @@ class SFG_IR_SFG_power_dependence():
 			sys.exit()
 
 		return self.signal
+
+	def correct_error_peaks(self, height=35, prominence=30, threshold=30, neighbours=5):
+		# Code for correcting error peaks
+		for i in range(len(self.signal.shape[1])):
+			peaks, properties = find_peaks(abs(self.signal.iloc[:,i]), height=height, prominence=prominence)
+
+			for peak in peaks:                                                                                                                                                                                                       
+				left_value = self.signal.iloc[:,i].iloc[peak - 2]                                                                                                                                                                 
+				right_value = self.signal.iloc[:,i].iloc[peak + 2]                                                                                                                                                                
+				if abs(self.signal.iloc[:,i].iloc[peak]) > abs(left_value) + threshold and abs(self.signal.iloc[:,i].iloc[peak]) > abs(right_value) + threshold:                                                               
+					for i in range(neighbours):                                                                                                                                                                                               
+						self.signal.iloc[:,i].iloc[peak-i] = left_value / 2                                                                                                                                                       
+						self.signal.iloc[:,i].iloc[peak+i] = left_value / 2   
+
 
 	def load_data_wavelength_axis(self):
 		os.chdir(self.path_to_data_wavelength) # Set current directory to the folder containing the files of interest
