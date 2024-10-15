@@ -202,6 +202,7 @@ class SFG_IR_SFG_power_dependence():
 
 		fig.set_tight_layout(True)
 		fig.show()
+		return fig
 
 	def plot_spectra_wavelength(self):
 		fig = plt.figure()
@@ -216,6 +217,7 @@ class SFG_IR_SFG_power_dependence():
 
 		fig.set_tight_layout(True)
 		fig.show()
+		return fig
 
 	def plot_spectra_eV(self):
 		fig = plt.figure()
@@ -230,6 +232,7 @@ class SFG_IR_SFG_power_dependence():
 
 		fig.set_tight_layout(True)
 		fig.show()
+		return fig
 
 class SFG_visible_PL_power_dependence():
 	def __init__(self, path_to_data):
