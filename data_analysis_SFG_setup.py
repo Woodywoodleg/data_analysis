@@ -176,13 +176,13 @@ class SFG_IR_SFG_power_dependence():
 			print('Error: File not found!')
 			sys.exit()
 
-		self.wavelength_100um = pd.read_csv([s for s in Ne_files if re.search('.?100um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
-		self.wavelength_200um = pd.read_csv([s for s in Ne_files if re.search('.?200um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
+		self.Ne_100um = pd.read_csv([s for s in Ne_files if re.search('.?100um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
+		self.Ne_200um = pd.read_csv([s for s in Ne_files if re.search('.?200um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
+
+		self.wavelength_100um = self.Ne_100um['Wavelength'].to_numpy()
+		self.wavelength_200um = self.Ne_200um['Wavelength'].to_numpy()
 
 		return self.wavelength_100um, self.wavelength_200um
-
-
-
 
 	def fit_to_peak(self, spectrum, type='Gaussian', A=None, x_0=None, sigma=None, gamma=None):
 		pass
@@ -209,7 +209,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.wavelength_100um['Wavelength'], self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Wavelength [nm]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -223,7 +223,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(1238.9/self.wavelength_100um['Wavelength'], self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(1238.9/self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Photon energy [eV]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
