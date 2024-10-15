@@ -84,6 +84,7 @@ class SFG_IR_SFG_power_dependence():
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.cd_script = os.getcwd() # Get directory containing script
 		self.load_data()
+		self.convert_column_to_watts()
 		self.load_data_wavelength_axis()
 		self.change_cd_back()
 
@@ -150,6 +151,33 @@ class SFG_IR_SFG_power_dependence():
 			sys.exit()
 
 		return self.signal
+
+	def convert_column_to_watts(self):
+		def convert_to_watts(col_name):
+			# Use regular expressions to separate the numeric part and the unit
+			match = re.match(r"([0-9.]+)([nµm]?W)", col_name)
+			if match:
+				value = float(match.group(1))  # Numeric part
+				unit = match.group(2)          # Unit part (nW, µW, mW, or W)
+
+				# Convert to watts
+				if unit == "nW":
+				    watts = value * 1e-9
+				elif unit == "µW":
+				    watts = value * 1e-6
+				elif unit == "mW":
+				    watts = value * 1e-3
+				elif unit == "W":
+				    watts = value
+
+				# Format in scientific notation with 3 significant digits
+				return f"{watts:.3e}"
+			else:
+				return col_name  # If no match, return the column name as is
+
+		self.signal.columns = [convert_to_watts(col) for col in self.signal.columns]
+		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
+
 
 	def correct_error_peaks(self, height=35, prominence=30, threshold=30, neighbours=5):
 		# Code for correcting error peaks
