@@ -139,6 +139,9 @@ class SFG_IR_SFG_power_dependence():
 
 				self.signal_raw[power] = self.signal[power]
 
+			self.signal_raw[self.signal_raw < - 5] = 0
+			self.signal[self.signal < -5] = 0
+
 		elif len(PL_files) < 2:
 			print('Error: Appears to be missing either background or signal file.')
 			sys.exit()
