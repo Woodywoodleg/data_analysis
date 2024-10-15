@@ -209,7 +209,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(self.wavelength_100um['Wavelength'], self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Wavelength [nm]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -223,7 +223,7 @@ class SFG_IR_SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(1238.9/self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(1238.9/self.wavelength_100um['Wavelength'], self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Photon energy [eV]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
