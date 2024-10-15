@@ -79,8 +79,9 @@ class Photoluminescence_spectrum():
 		fig.show()
 
 class SFG_IR_SFG_power_dependence():
-	def __init__(self, path_to_data):
+	def __init__(self, path_to_data, path_to_data_wavelength):
 		self.path_to_data = path_to_data
+		self.path_to_data_wavelength = path_to_data_wavelength
 		self.cd_script = os.getcwd() # Get directory containing script
 		self.load_data()
 		self.load_data_wavelength_axis()
@@ -281,7 +282,7 @@ class SFG_visible_PL_power_dependence():
 		return self.signal
 
 	def load_data_wavelength_axis(self):
-		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
+		os.chdir(self.path_to_data_wavelength) # Set current directory to the folder containing the files of interest
 
 		self.all_files = [] # Create empty array to contain all txt files in the directory
 		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
