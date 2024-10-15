@@ -166,16 +166,16 @@ class SFG_power_dependence():
 
 				# Convert to watts
 				if unit == "nW":
-				    watts = value * 1e-9
-				elif unit == "µW":
 				    watts = value * 1e-6
-				elif unit == "mW":
+				elif unit == "µW":
 				    watts = value * 1e-3
+				elif unit == "mW":
+				    watts = value * 1
 				elif unit == "W":
-				    watts = value
+				    watts = value * 1e3
 
 				# Format in scientific notation with 3 significant digits
-				return f"{watts:.3e}"
+				return f"{watts:.3e} mW"
 			else:
 				return col_name  # If no match, return the column name as is
 
@@ -228,7 +228,7 @@ class SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.signal.iloc[:, i], label=self.signal.columns[i]+' W')
+			plt.plot(self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Pixel')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -243,7 +243,7 @@ class SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i]+' W')
+			plt.plot(self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Wavelength [nm]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -258,7 +258,7 @@ class SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(1238.9/self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i]+' W')
+			plt.plot(1238.9/self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Photon energy [eV]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
