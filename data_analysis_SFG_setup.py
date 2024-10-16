@@ -11,14 +11,9 @@ import glob
 import re
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
-
-# Define Gaussian function
-def gaussian(x, a, x0, sigma):
-    return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
-
-# Define Lorentzian function
-def lorentzian(x, a, x0, gamma):
-    return a / (1 + ((x - x0) / gamma)**2)
+from lmfit.models import GaussianModel, LorentzianModel
+from lmfit import Model
+from lmfit import Parameters
 
 class Raman_spectrum():
 	def __init__(self, path_to_data='./'):
@@ -219,7 +214,31 @@ class SFG_power_dependence():
 
 		return self.wavelength_100um, self.wavelength_200um
 
-	def fit_to_peak(self, spectrum, type='Gaussian', A=None, x_0=None, sigma=None, gamma=None):
+	def fit_to_peak(self, spectrum, wavelength, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None):
+		A, x_0, sigma = [s if isinstance(s, list) else [s] for s in [A, x_0, sigma]]
+		Model = []
+		params = Parameters()
+		for i in range(peaks):
+			if fit_type == 'Gaussian':
+				temp = GaussianModel(prefix=f'g{i+1}_')
+			elif fit_type == 'Lorentzian':
+				temp = LorentzianModel(prefix=f'g{i+1}_')
+			Model.append(temp)
+
+			params.add(f'g{i+1}_amplitude', value=A[i], min=0)
+			params.add(f'g{i+1}_center', value=x_0[i])
+			params.add(f'g{i+1}_sigma', value=sigma[i])
+
+		model = Model[0]
+		for s in Model[1:]:
+			model += s
+
+		result = model.fit(spectrum, params, x=wavelength)
+		print(result.fit_report())
+
+		return result
+
+	def create_header(self):
 		pass
 
 	def plot_spectra(self):
@@ -334,7 +353,9 @@ if __name__ == "__main__":
 	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3')
 	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
 
-	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
+	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG',
+		scan_type='IR')
 
 
 
