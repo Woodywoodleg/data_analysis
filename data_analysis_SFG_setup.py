@@ -178,7 +178,7 @@ class SFG_power_dependence():
 		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
 
 		sorted_columns = sorted(self.signal.columns, key=convert_to_watts)
-		sorted_columns_sci = {col: f'{convert_to_watts(col):.3e} mW' for col in sorted_columns}
+		# sorted_columns_sci = {col: f'{convert_to_watts(col):.3e} mW' for col in sorted_columns}
 		self.signal = self.signal[sorted_columns]
 		self.signal.rename(columns=sorted_columns_sci, inplace=True)
 
