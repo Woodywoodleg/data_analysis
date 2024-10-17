@@ -178,7 +178,8 @@ class SFG_power_dependence():
 		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
 
 		sorted_columns = sorted(self.signal.columns, key=convert_to_watts)
-		self.signal.columns = self.signal.columns[sorted_columns]
+		sorted_columns = [col for col in sorted_columns if col in self.signal.columns]
+		self.signal = self.signal[sorted_columns]
 
 
 	def correct_error_peaks(self, height=35, prominence=30, threshold=30, neighbours=5):
@@ -346,18 +347,18 @@ class SFG_load_spectrum_single():
 
 if __name__ == "__main__":
 
-	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3\20241007\\"
+	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
 
 	raman = Raman_spectrum(
-		path_to_data=r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3\20241007\No241007-001-CsPbBr3-Raman-1sx10-G2400DetWL541nm-Exc532nm-ND3-Obj100x-pinslit100um.txt")
+		path_to_data=r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\No241007-001-CsPbBr3-Raman-1sx10-G2400DetWL541nm-Exc532nm-ND3-Obj100x-pinslit100um.txt")
 	PL = Photoluminescence_spectrum(
 		path_to_data=data_path+r"No241007-003-CsPbBr3-PL-100ms-G150DetWL700nm-Exc532nm-ND3-Obj100x-pinslit100um.txt")
 
-	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3')
-	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG')
+	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
+	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
 
-	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG',
-		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-CsPbBr3-SFG',
+	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
 		scan_type='IR')
 
 
