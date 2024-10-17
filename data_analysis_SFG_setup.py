@@ -154,31 +154,27 @@ class SFG_power_dependence():
 	def convert_column_to_watts(self):
 		def convert_to_watts(col_name):
 			# Use regular expressions to separate the numeric part and the unit
-			match = re.match(r"([0-9.]+)([nµm]?W)", col_name)
+			match = re.match(r'(\d+\.?\d*)([nµm]?W)', col_name)
 			if match:
-				value = float(match.group(1))  # Numeric part
-				unit = match.group(2)          # Unit part (nW, µW, mW, or W)
+				value = float(match.group(1))
+				unit = match.group(2)
 
 				# Convert to watts
-				if unit == "nW":
-				    watts = value * 1e-6
-				elif unit == "µW":
-				    watts = value * 1e-3
-				elif unit == "mW":
-				    watts = value * 1
-				elif unit == "W":
-				    watts = value * 1e3
+				if unit == 'nW':
+				    return value * 1e-6
+				elif unit == 'µW':
+				    return value * 1e-3
+				elif unit == 'mW':
+				    return value * 1
+				elif unit == 'W':
+				    return value * 1e3
+			return float('inf')  # Fallback in case the format doesn't match
 
-				# Format in scientific notation with 3 significant digits
-				return watts
-			else:
-				return col_name  # If no match, return the column name as is
-
-		self.signal.columns = [convert_to_watts(col) for col in self.signal.columns]
-		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
+		# self.signal.columns = [convert_to_watts(col) for col in self.signal.columns]
+		# self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
 
 		sorted_columns = sorted(self.signal.columns, key=convert_to_watts)
-		# sorted_columns_sci = {col: f'{convert_to_watts(col):.3e} mW' for col in sorted_columns}
+		sorted_columns_sci = {col: f'{convert_to_watts(col):.3e}W' for col in sorted_columns}
 		self.signal = self.signal[sorted_columns]
 		self.signal.rename(columns=sorted_columns_sci, inplace=True)
 
@@ -360,6 +356,10 @@ if __name__ == "__main__":
 
 	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
+		scan_type='IR')
+
+	sfg_10K_IR_SPF = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG SPF 1150 nm',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG',
 		scan_type='IR')
 
 
