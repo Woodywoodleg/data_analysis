@@ -177,6 +177,9 @@ class SFG_power_dependence():
 		self.signal.columns = [convert_to_watts(col) for col in self.signal.columns]
 		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
 
+		sorted_columns = sorted(self.signal.columns, key=convert_to_watts)
+		self.signal.columns = self.signal.columns[sorted_columns]
+
 
 	def correct_error_peaks(self, height=35, prominence=30, threshold=30, neighbours=5):
 		# Code for correcting error peaks
