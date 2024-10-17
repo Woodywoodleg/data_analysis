@@ -170,7 +170,7 @@ class SFG_power_dependence():
 				    watts = value * 1e3
 
 				# Format in scientific notation with 3 significant digits
-				return f"{watts:.3e} mW"
+				return watts
 			else:
 				return col_name  # If no match, return the column name as is
 
@@ -178,8 +178,9 @@ class SFG_power_dependence():
 		self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
 
 		sorted_columns = sorted(self.signal.columns, key=convert_to_watts)
-		sorted_columns = [col for col in sorted_columns if col in self.signal.columns]
+		sorted_columns_sci = {col: f'{convert_to_watts(col):.3e} mW' for col in sorted_columns}
 		self.signal = self.signal[sorted_columns]
+		self.signal.rename(columns=sorted_columns_sci, inplace=True)
 
 
 	def correct_error_peaks(self, height=35, prominence=30, threshold=30, neighbours=5):
