@@ -74,15 +74,16 @@ class Photoluminescence_spectrum():
 		fig.show()
 
 class SFG_power_dependence():
-	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR'):
+	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR', init_extra=True):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.scan_type = scan_type
 		self.cd_script = os.getcwd() # Get directory containing script
-		self.load_data()
-		self.convert_column_to_watts()
-		self.load_data_wavelength_axis()
-		self.change_cd_back()
+		if init_extra:
+			self.load_data()
+			self.convert_column_to_watts()
+			self.load_data_wavelength_axis()
+			self.change_cd_back()
 
 	def change_cd_back(self):
 		os.chdir(self.cd_script) # Change directory back to where the script is located
@@ -142,7 +143,7 @@ class SFG_power_dependence():
 			self.signal_raw[self.signal_raw < - 5] = 0
 			self.signal[self.signal < -5] = 0
 
-		elif len(PL_files) < 2:
+		elif len(SFG_files) < 2:
 			print('Error: Appears to be missing either background or signal file.')
 			sys.exit()
 		else:
@@ -212,8 +213,10 @@ class SFG_power_dependence():
 
 		self.wavelength_100um = self.Ne_100um['Wavelength'].to_numpy()
 		self.wavelength_200um = self.Ne_200um['Wavelength'].to_numpy()
+		self.energy_100um = 1238.9/self.wavelength_100um
+		self.energy_200um = 1238.9/self.wavelength_200um
 
-		return self.wavelength_100um, self.wavelength_200um
+		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
 
 	def fit_to_peak(self, spectrum, wavelength, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None):
 		A, x_0, sigma = [s if isinstance(s, list) else [s] for s in [A, x_0, sigma]]
@@ -278,7 +281,7 @@ class SFG_power_dependence():
 
 		ax = fig.add_subplot(gs[0,0])
 		for i in range(self.signal.shape[1]):
-			plt.plot(1238.9/self.wavelength_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
+			plt.plot(self.energy_100um, self.signal.iloc[:, i], label=self.signal.columns[i])
 		ax.set_xlabel('Photon energy [eV]')
 		ax.set_ylabel('Intensity [a.u.]')
 		ax.legend()
@@ -340,8 +343,117 @@ class SFG_load_spectrum_single():
 		self.wavelength_200um = pd.read_csv([s for s in Ne_files if re.search('.?200um.+', s)][0], sep='\t', header=None, names=['Wavelength', 'Ne'])
 
 		return self.wavelength_100um, self.wavelength_200um
- 
 
+class PL_wavelength_sweep(SFG_power_dependence):
+	def __init__(self, path_to_data, path_to_data_wavelength):
+		self.path_to_data = path_to_data
+		self.path_to_data_wavelength = path_to_data_wavelength
+		self.cd_script = os.getcwd() # Get directory containing script
+		super().__init__(path_to_data, path_to_data_wavelength, init_extra=False)
+		self.load_data_PL()
+		self.load_data_wavelength_axis()
+		self.convert_column_to_nm()
+		self.change_cd_back()
+
+	def load_data_PL(self):
+		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
+
+		self.all_files = [] # Create empty array to contain all txt files in the directory
+		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
+			self.all_files.append(file) # Appends files found
+
+		try:
+			SFG_files = [s for s in self.all_files if re.search('.?PL.+', s)]
+
+		except IndexError:
+			print('Error: File not found!')
+			sys.exit()
+
+		self.signal, self.backround, self.signal_raw = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+		if len(SFG_files) >= 2:
+			SFG_files.sort()
+			SFG_files_grouped = [SFG_files[i:i+2] for i in range(0, len(SFG_files), 2)]
+
+			signal_raw, background_raw = pd.DataFrame(), pd.DataFrame()
+
+			for i in range(len(SFG_files_grouped)):
+				signal_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea2of2.+', s)]
+				background_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea1of2.+', s)]
+
+				wavelength_match = re.search(r'(\d+)(A)', signal_file[0])
+
+				if wavelength_match:
+					wavelength = wavelength_match.group(0)
+				else:
+					continue
+
+				signal = pd.read_csv(signal_file[0], sep='\t', header=None)
+				background = pd.read_csv(background_file[0], sep='\t', header=None)
+				self._averages = signal.shape[1]
+
+				names = []
+				for j in range(self._averages):
+					names.append('Trace '+str(j+1))
+
+				signal_raw, background_raw = signal.set_axis(names, axis=1), background.set_axis(names, axis=1)
+
+				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
+
+				self.signal[wavelength], self.backround[wavelength] = signal_avg - background_avg, background_avg
+
+				self.signal_raw[wavelength] = self.signal[wavelength]
+
+			self.signal_raw[self.signal_raw < - 5] = 0
+			self.signal[self.signal < -5] = 0
+
+		elif len(PL_files) < 2:
+			print('Error: Appears to be missing either background or signal file.')
+			sys.exit()
+		else:
+			print('Please check input - file not found!')
+			sys.exit()
+
+		return self.signal
+
+	def convert_column_to_nm(self):
+		def convert_to_nm(col_name):
+			# Use regular expressions to separate the numeric part and the unit
+			match = re.match(r'(\d+)(A)', col_name)
+			if match:
+				value = float(match.group(1))
+				unit = match.group(2)
+
+				# # Convert to nm
+				# value * 1e-2
+				return value * 1e-1
+
+		# self.signal.columns = [convert_to_watts(col) for col in self.signal.columns]
+		# self.signal_raw.columns = [convert_to_watts(col) for col in self.signal_raw.columns]
+
+		sorted_columns = sorted(self.signal.columns, key=convert_to_nm)
+		sorted_columns_sci = {col: f'{convert_to_nm(col):.1f} nm' for col in sorted_columns}
+		self.signal = self.signal[sorted_columns]
+		self.signal.rename(columns=sorted_columns_sci, inplace=True)
+
+	def plot_lambda_spectra(self, normalisation=True):
+		fig = plt.figure()
+		gs = GridSpec(1,1, figure=fig)
+
+		ax = fig.add_subplot(gs[0,0])
+		for i in range(self.signal.shape[1]):
+			if normalisation:
+				ax.plot(self.energy_100um, self.signal.iloc[:,i]/self.signal.iloc[:,i].max(), label=f'$\\lambda_{{exc.}} = {self.signal.columns[i]}$')
+			else:
+				ax.plot(self.energy_100um, self.signal.iloc[:,i], label=f'$\\lambda_{{exc.}} = {self.signal.columns[i]}$')
+		ax.set_xlabel('Photon Energy [eV]')
+		ax.set_ylabel('Intensity [a.u.]')
+		ax.set_title('PL at different excitation energies')
+		ax.legend()
+
+		fig.set_tight_layout(True)
+		fig.show()
+ 
 if __name__ == "__main__":
 
 	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
@@ -361,6 +473,9 @@ if __name__ == "__main__":
 	sfg_10K_IR_SPF = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG SPF 1150 nm',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG',
 		scan_type='IR')
+
+	pl_lambda_sweep = PL_wavelength_sweep(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\Visible wavelength sweep',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG')
 
 
 
