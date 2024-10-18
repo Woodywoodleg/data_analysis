@@ -238,7 +238,7 @@ class SFG_power_dependence():
 			model += s
 
 		result = model.fit(spectrum, params, x=wavelength)
-		print(result.fit_report())
+		# print(result.fit_report())
 
 		return result
 
