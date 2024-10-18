@@ -397,11 +397,9 @@ class PL_wavelength_sweep(SFG_power_dependence):
 					names.append('Trace '+str(j+1))
 
 				signal_raw, background_raw = signal.set_axis(names, axis=1), background.set_axis(names, axis=1)
-
 				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
 
 				self.signal[wavelength], self.backround[wavelength] = signal_avg - background_avg, background_avg
-
 				self.signal_raw[wavelength] = self.signal[wavelength]
 
 			self.signal_raw[self.signal_raw < - 5] = 0
