@@ -457,7 +457,6 @@ class PL_wavelength_sweep(SFG_power_dependence):
 if __name__ == "__main__":
 
 	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
-
 	raman = Raman_spectrum(
 		path_to_data=r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\No241007-001-CsPbBr3-Raman-1sx10-G2400DetWL541nm-Exc532nm-ND3-Obj100x-pinslit100um.txt")
 	PL = Photoluminescence_spectrum(
