@@ -117,7 +117,7 @@ class SFG_power_dependence():
 				signal_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea2of2.+', s)]
 				background_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea1of2.+', s)]
 
-				power_match = re.search(r'(\d+)(nW|µW|mW|W)', signal_file[0])
+				power_match = re.search(r'(\d+)(nW|uW|mW|W)', signal_file[0])
 
 				if power_match:
 					power = power_match.group(0)
@@ -155,7 +155,7 @@ class SFG_power_dependence():
 	def convert_column_to_watts(self):
 		def convert_to_watts(col_name):
 			# Use regular expressions to separate the numeric part and the unit
-			match = re.match(r'(\d+\.?\d*)([nµm]?W)', col_name)
+			match = re.match(r'(\d+\.?\d*)([num]?W)', col_name)
 			if match:
 				value = float(match.group(1))
 				unit = match.group(2)
@@ -163,7 +163,7 @@ class SFG_power_dependence():
 				# Convert to watts
 				if unit == 'nW':
 				    return value * 1e-6
-				elif unit == 'µW':
+				elif unit == 'uW':
 				    return value * 1e-3
 				elif unit == 'mW':
 				    return value * 1
@@ -197,12 +197,12 @@ class SFG_power_dependence():
 	def load_data_wavelength_axis(self):
 		os.chdir(self.path_to_data_wavelength) # Set current directory to the folder containing the files of interest
 
-		self.all_files = [] # Create empty array to contain all txt files in the directory
+		self.all_files_axis = [] # Create empty array to contain all txt files in the directory
 		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
-			self.all_files.append(file) # Appends files found
+			self.all_files_axis.append(file) # Appends files found
 
 		try:
-			Ne_files = [s for s in self.all_files if re.search('.?Ne.+', s)]
+			Ne_files = [s for s in self.all_files_axis if re.search('.?Ne.+', s)]
 
 		except IndexError:
 			print('Error: File not found!')
@@ -467,7 +467,7 @@ if __name__ == "__main__":
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
 		scan_type='IR')
 
-	sfg_10K_IR_SPF = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG SPF 1150 nm',
+	sfg_10K_IR_BPF = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG BPF 1100 nm',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG',
 		scan_type='IR')
 
