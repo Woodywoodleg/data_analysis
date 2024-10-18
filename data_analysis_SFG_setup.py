@@ -478,4 +478,3 @@ if __name__ == "__main__":
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG')
 
 
-
