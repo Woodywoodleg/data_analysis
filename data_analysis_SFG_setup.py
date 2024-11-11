@@ -257,7 +257,7 @@ class SFG_power_dependence():
 		# print(result.fit_report())
 
 		self.fit_best_fit = result.best_fit # Best combined fit to the whole spectrum
-		self.fit_peaks = result.eval_components() # Individual fit to each of the peaks
+		self.fit_peaks = pd.DataFrame(result.eval_components()) # Individual fit to each of the peaks
 
 		return result
 
