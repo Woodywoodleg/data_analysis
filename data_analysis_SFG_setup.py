@@ -256,24 +256,33 @@ class SFG_power_dependence():
 		result = model.fit(spectrum, params, x=xaxis)
 		# print(result.fit_report())
 
-		self.fit_best_fit = result.best_fit # Best combined fit to the whole spectrum
-		self.fit_peaks = pd.DataFrame(result.eval_components()) # Individual fit to each of the peaks
+		self.signal_fit_best_fit = result.best_fit # Best combined fit to the whole spectrum
+		self.signal_fit_peaks = pd.DataFrame(result.eval_components()) # Individual fit to each of the peaks
 
 		return result
 
-
-	def power_dependence(self, method='max'):
+	def power_dependence(self, method='max', eV_range=None):
 		# Create list contain all powers
 		self.signal_powers = self.signal.columns.tolist()
 		# Convert the list of strings into a list of numbers
 		self.signal_powers = [float(power.replace(' mW', '')) for power in self.signal_powers]
 
+		if eV_range:
+			filtered_indices = [i for i, x in enumerate(self.energy_100um) if eV_range[0] <= x <= eV_range[1]]
+			spectrum = self.signal.iloc[filtered_indices]
+			# xaxis = xaxis.iloc[filtered_indices]
+		else:
+			spectrum = self.signal
 
 		if method == 'max' or 'Max':
-			pass # make this where you simply take signal.max() - only works for one peak
+			temp_intensity = [] # Temporary list for containing the maximum values
+			temp_energy = [] # Temp. list for containing the energy location of the maximum
+			for i in range(len(self.signal.columns)):
+				temp_intensity.append(spectrum.iloc[:,i].max())
+				temp_energy.append(self.energy_100um[spectrum.iloc[:,i].idxmax()])
 
-
-
+			# Create a dataframe for containing the results
+			self.signal_power_dependence = pd.DataFrame({'Power [mW]': self.signal_powers, 'Signal [a.u]': temp_intensity, 'Energy_loc [eV]': temp_energy}) 
 
 	def create_header(self):
 		pass
