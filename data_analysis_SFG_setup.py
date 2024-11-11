@@ -220,29 +220,60 @@ class SFG_power_dependence():
 
 		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
 
-	def fit_to_peak(self, spectrum, wavelength, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None):
-		A, x_0, sigma = [s if isinstance(s, list) else [s] for s in [A, x_0, sigma]]
-		Model = []
-		params = Parameters()
-		for i in range(peaks):
+	def fit_to_peak(self, spectrum, xaxis, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None, eV_range=None, nm_range=None):
+
+		# Slice the spectrum if boundaries are given either in eV or nm
+		if eV_range:
+			filtered_indices = [i for i, x in enumerate(xaxis) if eV_range[0] <= x <= eV_range[1]]
+			spectrum = spectrum.iloc[filtered_indices]
+			xaxis = xaxis.iloc[filtered_indices]
+		if nm_range:
+			filtered_indices = [i for i, x in enumerate(xaxis) if nm_range[0] <= x <= nm_range[1]]
+			spectrum = spectrum.iloc[filtered_indices]
+			xaxis = xaxis.iloc[filtered_indices]
+
+		# Define parameters for the fit
+		A, x_0, sigma = [s if isinstance(s, list) else [s] for s in [A, x_0, sigma]] # Ensure that the input is a list
+		Model = [] # Empty list to contain the model
+		params = Parameters() # Create a parameters parameter
+		for i in range(peaks): # Define type for each peak
 			if fit_type == 'Gaussian':
 				temp = GaussianModel(prefix=f'g{i+1}_')
 			elif fit_type == 'Lorentzian':
 				temp = LorentzianModel(prefix=f'g{i+1}_')
 			Model.append(temp)
 
+			# Add the defining parameters for the model
 			params.add(f'g{i+1}_amplitude', value=A[i], min=0)
 			params.add(f'g{i+1}_center', value=x_0[i])
 			params.add(f'g{i+1}_sigma', value=sigma[i])
 
-		model = Model[0]
-		for s in Model[1:]:
-			model += s
+		# Combining the models and parameters for each peak into a composite model
+		model = Model[0] # Initialize the combined model
+		for s in Model[1:]: # For loop for summing the models
+			model += s # Add subsequent models
 
-		result = model.fit(spectrum, params, x=wavelength)
+		result = model.fit(spectrum, params, x=xaxis)
 		# print(result.fit_report())
 
+		self.fit_best_fit = result.best_fit # Best combined fit to the whole spectrum
+		self.fit_peaks = result.eval_components() # Individual fit to each of the peaks
+
 		return result
+
+
+	def power_dependence(self, method='max'):
+		# Create list contain all powers
+		self.signal_powers = self.signal.columns.tolist()
+		# Convert the list of strings into a list of numbers
+		self.signal_powers = [float(power.replace(' mW', '')) for power in self.signal_powers]
+
+
+		if method == 'max' or 'Max':
+			pass # make this where you simply take signal.max() - only works for one peak
+
+
+
 
 	def create_header(self):
 		pass
@@ -465,8 +496,8 @@ if __name__ == "__main__":
 	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
 	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
 
-	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
-		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007-SFG',
+	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG full IR power sweep',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG',
 		scan_type='IR')
 
 	sfg_10K_IR_BPF = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\SFG BPF 1100 nm',
