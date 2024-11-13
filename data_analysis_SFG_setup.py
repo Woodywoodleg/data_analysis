@@ -284,6 +284,8 @@ class SFG_power_dependence():
 			# Create a dataframe for containing the results
 			self.signal_power_dependence = pd.DataFrame({'Power [mW]': self.signal_powers, 'Signal [a.u]': temp_intensity, 'Energy_loc [eV]': temp_energy}) 
 
+		return self.signal_power_dependence
+
 	def create_header(self):
 		pass
 
