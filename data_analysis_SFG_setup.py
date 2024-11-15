@@ -580,7 +580,6 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		return self.signal
 
-
 if __name__ == "__main__":
 
 	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
