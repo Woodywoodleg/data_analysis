@@ -392,11 +392,11 @@ class SFG_load_spectrum_single():
 		return self.wavelength_100um, self.wavelength_200um
 
 class PL_wavelength_sweep(SFG_power_dependence):
-	def __init__(self, path_to_data, path_to_data_wavelength):
+	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR'):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.cd_script = os.getcwd() # Get directory containing script
-		super().__init__(path_to_data, path_to_data_wavelength, init_extra=False)
+		super().__init__(path_to_data, path_to_data_wavelength, scan_type=scan_type, init_extra=False)
 		self.load_data_PL()
 		self.load_data_wavelength_axis()
 		self.convert_column_to_nm()
