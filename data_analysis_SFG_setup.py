@@ -98,7 +98,7 @@ class SFG_power_dependence():
 		try:
 			if self.scan_type == 'IR':
 				SFG_files = [s for s in self.all_files if re.search('.?SFG.+', s)]
-			elif self.scan_type == 'Visible':
+			elif self.scan_type == 'Visible' or 'PL':
 				SFG_files = [s for s in self.all_files if re.search('.?PL.+', s)]
 
 		except IndexError:
