@@ -580,6 +580,29 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		return self.signal
 
+	def polar_max(self, method='max', eV_range=None):
+		# Create list contain all angles
+		self.signal_angles = self.signal.columns.tolist()
+
+		if eV_range:
+			filtered_indices = [i for i, x in enumerate(self.energy_100um) if eV_range[0] <= x <= eV_range[1]]
+			spectrum = self.signal.iloc[filtered_indices]
+			# xaxis = xaxis.iloc[filtered_indices]
+		else:
+			spectrum = self.signal
+
+		if method == 'max' or 'Max':
+			temp_intensity = [] # Temporary list for containing the maximum values
+			temp_energy = [] # Temp. list for containing the energy location of the maximum
+			for i in range(len(self.signal.columns)):
+				temp_intensity.append(spectrum.iloc[:,i].max())
+				temp_energy.append(self.energy_100um[spectrum.iloc[:,i].idxmax()])
+
+			# Create a dataframe for containing the results
+			self.signal_polar_max = pd.DataFrame({'Angles [deg]': self.signal_angles, 'Signal [a.u]': temp_intensity, 'Energy_loc [eV]': temp_energy}) 
+
+		return self.signal_polar_max
+
 if __name__ == "__main__":
 
 	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
