@@ -449,8 +449,8 @@ class PL_wavelength_sweep(SFG_power_dependence):
 				self.signal[wavelength], self.backround[wavelength] = signal_avg - background_avg, background_avg
 				self.signal_raw[wavelength] = self.signal[wavelength]
 
-			self.signal_raw[self.signal_raw < - 5] = 0
-			self.signal[self.signal < -5] = 0
+			self.signal_raw[self.signal_raw < - 5] = 1e-8
+			self.signal[self.signal < -5] = 1e-8
 
 		elif len(PL_files) < 2:
 			print('Error: Appears to be missing either background or signal file.')
@@ -566,8 +566,8 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 				self.signal_raw[degree] = self.signal[degree]
 
-			self.signal_raw[self.signal_raw < - 5] = 0
-			self.signal[self.signal < -5] = 0
+			self.signal_raw[self.signal_raw < - 5] = 1e-8
+			self.signal[self.signal < -5] = 1e-8
 
 			self.signal_normalised = self.signal / self.signal.max()
 
@@ -603,6 +603,82 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		return self.signal_polar_max
 
+class SFG_PLE(SFG_power_dependence):
+	def __init__(self, path_to_data, path_to_data_wavelength):
+		self.path_to_data = path_to_data
+		self.path_to_data_wavelength = path_to_data_wavelength
+		self.cd_script = os.getcwd() # Get directory containing script
+		super().__init__(path_to_data, path_to_data_wavelength, scan_type=scan_type, init_extra=False)
+		self.load_data_PLE()
+		self.load_data_wavelength_axis()
+		# self.convert_column_to_nm()
+		self.change_cd_back()
+
+	def load_data_PLE(self):
+		os.chdir(self.path_to_data) # Set current directory to the folder containing the files of interest
+
+		self.all_files = [] # Create empty array to contain all txt files in the directory
+		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
+			self.all_files.append(file) # Appends files found
+
+		try:
+			SFG_files = [s for s in self.all_files if re.search('.?PL.+', s)]
+
+		except IndexError:
+			print('Error: File not found!')
+			sys.exit()
+
+		self.signal, self.backround, self.signal_raw = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+		if len(SFG_files) >= 2:
+			SFG_files.sort()
+			SFG_files_grouped = [SFG_files[i:i+2] for i in range(0, len(SFG_files), 2)]
+
+			signal_raw, background_raw = pd.DataFrame(), pd.DataFrame()
+
+			for i in range(len(SFG_files_grouped)):
+				signal_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea2of2.+', s)]
+				background_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea1of2.+', s)]
+
+				WL_match = re.search(r'(SetWL)(\d+)', signal_file[0])
+
+				if WL_match:
+					WL = sigma_match.group(0)
+					wavelength = (float(re.findall(r'\d+', WL)[0])*1e-1)
+				else:
+					continue
+
+				signal = pd.read_csv(signal_file[0], sep='\t', header=None)
+				background = pd.read_csv(background_file[0], sep='\t', header=None)
+				self._averages = signal.shape[1]
+
+				names = []
+				for j in range(self._averages):
+					names.append('Trace '+str(j+1))
+
+				signal_raw, background_raw = signal.set_axis(names, axis=1), background.set_axis(names, axis=1)
+
+				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
+
+				self.signal[wavelength], self.backround[wavelength] = signal_avg - background_avg, background_avg
+
+				self.signal_raw[wavelength] = self.signal[wavelength]
+
+			self.signal_raw[self.signal_raw < - 5] = 1e-8
+			self.signal[self.signal < -5] = 1e-8
+
+			self.signal_normalised = self.signal / self.signal.max()
+
+		elif len(SFG_files) < 2:
+			print('Error: Appears to be missing either background or signal file.')
+			sys.exit()
+		else:
+			print('Please check input - file not found!')
+			sys.exit()
+
+		return self.signal
+
+
 if __name__ == "__main__":
 
 	data_path = r"C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007\20241007\\"
@@ -611,8 +687,8 @@ if __name__ == "__main__":
 	PL = Photoluminescence_spectrum(
 		path_to_data=data_path+r"No241007-003-CsPbBr3-PL-100ms-G150DetWL700nm-Exc532nm-ND3-Obj100x-pinslit100um.txt")
 
-	microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
-	microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
+	# microscope = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
+	# microscope_SFG = ImageLoader(r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241007')
 
 	sfg = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\30K\SFG full IR power sweep',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG',
@@ -625,5 +701,9 @@ if __name__ == "__main__":
 	pl_lambda_sweep = PL_wavelength_sweep(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\Visible wavelength sweep',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG')
 
-	data = SFG_polarisation_dependence(path_to_data=r'C:\Users\h_las\Documents\20241112-SFG\SFG 1300LPF full polarisation\WG1-9150k',
-		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241112-SFG')
+	data2 = SFG_power_dependence(path_to_data=r'C:\Users\h_las\Documents\20241112-SFG\SFG 1300LPF ND100k x 100avg x 10set\set1',
+		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241112-SFG',
+		scan_type='IR')
+
+	data = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241115-SFG 100 avg\new bulk 100 avg\PLE 540-525nm 50 avg para-perp\set1',
+		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241115-SFG 100 avg')
