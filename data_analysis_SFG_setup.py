@@ -608,9 +608,10 @@ class SFG_PLE(SFG_power_dependence):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.cd_script = os.getcwd() # Get directory containing script
-		super().__init__(path_to_data, path_to_data_wavelength, scan_type=scan_type, init_extra=False)
+		super().__init__(path_to_data, path_to_data_wavelength, scan_type='Visible', init_extra=False)
 		self.load_data_PLE()
 		self.load_data_wavelength_axis()
+		self.create_PLE_axis()
 		# self.convert_column_to_nm()
 		self.change_cd_back()
 
@@ -643,7 +644,7 @@ class SFG_PLE(SFG_power_dependence):
 				WL_match = re.search(r'(SetWL)(\d+)', signal_file[0])
 
 				if WL_match:
-					WL = sigma_match.group(0)
+					WL = WL_match.group(0)
 					wavelength = (float(re.findall(r'\d+', WL)[0])*1e-1)
 				else:
 					continue
@@ -677,6 +678,12 @@ class SFG_PLE(SFG_power_dependence):
 			sys.exit()
 
 		return self.signal
+
+	def create_PLE_axis(self):
+		self.PLE_wavelength = self.signal.columns.to_numpy()
+		self.PLE_energy = 1238.9/self.PLE_wavelength
+
+
 
 
 if __name__ == "__main__":
