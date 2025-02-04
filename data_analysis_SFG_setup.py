@@ -684,11 +684,10 @@ class SFG_PLE(SFG_power_dependence):
 		self.PLE_energy = 1238.9/self.PLE_wavelength
 
 class SFG_reflection(SFG_power_dependence):
-	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength, reference_number=0):
+	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.path_to_reference = path_to_reference
-		self.reference_number = reference_number
 		self.cd_script = os.getcwd() # Get directory containing script
 		super().__init__(path_to_data, path_to_data_wavelength, scan_type='Visible', init_extra=False)
 		# self.load_data_reflection(path=self.path_to_data)
@@ -753,14 +752,14 @@ class SFG_reflection(SFG_power_dependence):
 		return self.signal
 
 
-	def referenced(self):
+	def referenced(self, reference_number=0):
 		signal = self.load_data_reflection(path=self.path_to_data)
 		reference = self.load_data_reflection(path=self.path_to_reference)
 
 		signal = signal / signal.iloc[0:100].max()
 		reference = reference / reference.iloc[0:100].max()
 
-		self.signal = signal.sub(reference.iloc[:,self.reference_number], axis=0)
+		self.signal = signal.sub(reference.iloc[:,reference_number], axis=0)
 		self.signal_normalised = self.signal / self.signal.max()
 
 		self.change_cd_back()
