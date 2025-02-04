@@ -749,7 +749,7 @@ class SFG_reflection(SFG_power_dependence):
 
 			self.signal_normalised_temp = self.signal_temp / self.signal_temp.max()
 
-		return self.signal
+		return self.signal_temp
 
 
 	def referenced(self, reference_number=0):
