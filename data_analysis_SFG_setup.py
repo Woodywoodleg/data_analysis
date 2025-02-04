@@ -753,11 +753,11 @@ class SFG_reflection(SFG_power_dependence):
 
 
 	def referenced(self, reference_number=0):
-		signal = self.load_data_reflection(path=self.path_to_data)
-		reference = self.load_data_reflection(path=self.path_to_reference)
+		self.signal_raw = self.load_data_reflection(path=self.path_to_data)
+		self.reference_raw = self.load_data_reflection(path=self.path_to_reference)
 
-		signal = signal / signal.iloc[0:100].max()
-		reference = reference / reference.iloc[0:100].max()
+		signal = self.signal_raw / self.signal_raw.iloc[0:100].max()
+		reference = self.reference_raw / self.reference_raw.iloc[0:100].max()
 
 		self.signal = signal.sub(reference.iloc[:,reference_number], axis=0)
 		self.signal_normalised = self.signal / self.signal.max()
