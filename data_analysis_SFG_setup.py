@@ -683,6 +683,90 @@ class SFG_PLE(SFG_power_dependence):
 		self.PLE_wavelength = self.signal.columns.to_numpy()
 		self.PLE_energy = 1238.9/self.PLE_wavelength
 
+class SFG_reflection(SFG_power_dependence):
+	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength, reference_number=0):
+		self.path_to_data = path_to_data
+		self.path_to_data_wavelength = path_to_data_wavelength
+		self.path_to_reference = path_to_reference
+		self.reference_number = reference_number
+		self.cd_script = os.getcwd() # Get directory containing script
+		super().__init__(path_to_data, path_to_data_wavelength, scan_type='Visible', init_extra=False)
+		# self.load_data_reflection(path=self.path_to_data)
+		self.referenced()
+		self.load_data_wavelength_axis()
+		self.change_cd_back()
+
+	def load_data_reflection(self, path):
+		os.chdir(path) # Set current directory to the folder containing the files of interest
+
+		self.all_files = [] # Create empty array to contain all txt files in the directory
+		for file in glob.glob("*.dat"): # Searches the current directory for all txt files
+			self.all_files.append(file) # Appends files found
+
+		try:
+			SFG_files = [s for s in self.all_files if re.search('.?reflection.+', s)]
+
+		except IndexError:
+			print('Error: File not found!')
+			sys.exit()
+
+		self.signal, self.backround, self.signal_raw = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+		if len(SFG_files) >= 2:
+			SFG_files.sort()
+			SFG_files_grouped = [SFG_files[i:i+2] for i in range(0, len(SFG_files), 2)]
+
+			signal_raw, background_raw = pd.DataFrame(), pd.DataFrame()
+
+			for i in range(len(SFG_files_grouped)):
+				signal_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea2of2.+', s)]
+				background_file = [s for s in SFG_files_grouped[i] if re.search('.?BinArea1of2.+', s)]
+
+				power_match = re.search(r'(\d+)(nW|uW|mW|W)', signal_file[0])
+
+				if power_match:
+					power = power_match.group(0)
+				else:
+					continue
+
+				signal = pd.read_csv(signal_file[0], sep='\t', header=None)
+				background = pd.read_csv(background_file[0], sep='\t', header=None)
+				self._averages = signal.shape[1]
+
+				names = []
+				for j in range(self._averages):
+					names.append('Trace '+str(j+1))
+
+				signal_raw, background_raw = signal.set_axis(names, axis=1), background.set_axis(names, axis=1)
+
+				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
+
+				self.signal[power], self.backround[power] = signal_avg - background_avg, background_avg
+
+				self.signal_raw[power] = self.signal[power]
+
+			self.signal_raw[self.signal_raw < - 5] = 1e-8
+			self.signal[self.signal < -5] = 1e-8
+
+			self.signal_normalised = self.signal / self.signal.max()
+
+		return self.signal
+
+
+	def referenced(self):
+		signal = self.load_data_reflection(path=self.path_to_data)
+		reference = self.load_data_reflection(path=self.path_to_reference)
+
+		signal = signal / signal.iloc[0:100].max()
+		reference = reference / reference.iloc[0:100].max()
+
+		self.signal = signal.sub(reference.iloc[:,self.reference_number], axis=0)
+		self.signal_normalised = self.signal / self.signal.max()
+
+		self.change_cd_back()
+
+
+
 
 
 
@@ -714,3 +798,8 @@ if __name__ == "__main__":
 
 	data = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241115-SFG 100 avg\new bulk 100 avg\PLE 540-525nm 50 avg para-perp\set1',
 		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241115-SFG 100 avg')
+
+
+	test = SFG_reflection(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG\Reflection CsPbBr3',
+		path_to_reference=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG\Reflection SiO2-Si',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG')
