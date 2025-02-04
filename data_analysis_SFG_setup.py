@@ -709,7 +709,7 @@ class SFG_reflection(SFG_power_dependence):
 			print('Error: File not found!')
 			sys.exit()
 
-		self.signal, self.backround, self.signal_raw = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+		self.signal_temp, self.backround_temp, self.signal_raw_temp = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 		if len(SFG_files) >= 2:
 			SFG_files.sort()
@@ -740,14 +740,14 @@ class SFG_reflection(SFG_power_dependence):
 
 				signal_avg, background_avg = signal_raw.mean(axis=1), background_raw.mean(axis=1)
 
-				self.signal[power], self.backround[power] = signal_avg - background_avg, background_avg
+				self.signal_temp[power], self.backround_temp[power] = signal_avg - background_avg, background_avg
 
-				self.signal_raw[power] = self.signal[power]
+				self.signal_raw_temp[power] = self.signal_temp[power]
 
-			self.signal_raw[self.signal_raw < - 5] = 1e-8
-			self.signal[self.signal < -5] = 1e-8
+			self.signal_raw_temp[self.signal_raw_temp < - 5] = 1e-8
+			self.signal_temp[self.signal_temp < -5] = 1e-8
 
-			self.signal_normalised = self.signal / self.signal.max()
+			self.signal_normalised_temp = self.signal_temp / self.signal_temp.max()
 
 		return self.signal
 
