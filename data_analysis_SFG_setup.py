@@ -768,7 +768,7 @@ class SFG_reflection(SFG_power_dependence):
 			self.signal_raw = self.load_data_reflection(path=self.path_to_data)
 			self.reference_raw = self.load_data_reflection(path=self.path_to_reference)
 
-			self.signal = self.signal_raw / self.reference_raw
+			self.signal = self.signal_raw / self.reference_raw.iloc[:,reference_number]
 
 		self.change_cd_back()
 
