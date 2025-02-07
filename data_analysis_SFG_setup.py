@@ -752,15 +752,23 @@ class SFG_reflection(SFG_power_dependence):
 		return self.signal_temp
 
 
-	def referenced(self, reference_number=0):
-		self.signal_raw = self.load_data_reflection(path=self.path_to_data)
-		self.reference_raw = self.load_data_reflection(path=self.path_to_reference)
+	def referenced(self, reference_number=0, method='standard'):
 
-		signal = self.signal_raw / self.signal_raw.iloc[0:100].max()
-		reference = self.reference_raw / self.reference_raw.iloc[0:100].max()
+		if method == 'advanced':
+			self.signal_raw = self.load_data_reflection(path=self.path_to_data)
+			self.reference_raw = self.load_data_reflection(path=self.path_to_reference)
 
-		self.signal = signal.sub(reference.iloc[:,reference_number], axis=0)
-		self.signal_normalised = self.signal / self.signal.max()
+			signal = self.signal_raw / self.signal_raw.iloc[0:100].max()
+			reference = self.reference_raw / self.reference_raw.iloc[0:100].max()
+
+			self.signal = signal.sub(reference.iloc[:,reference_number], axis=0)
+			self.signal_normalised = self.signal / self.signal.max()
+
+		elif method == 'standard':
+			self.signal_raw = self.load_data_reflection(path=self.path_to_data)
+			self.reference_raw = self.load_data_reflection(path=self.path_to_reference)
+
+			self.signal = self.signal_raw / self.reference_raw
 
 		self.change_cd_back()
 
