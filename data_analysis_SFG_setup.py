@@ -360,7 +360,7 @@ class SFG_power_dependence():
 		}
 
 		# Create a new x-axis for plotting later on
-		x = np.linspace(power_dep_coherent['Power [mW]'].min()*0.8, power_dep_coherent['Power [mW]'].max()*1.3, 2**10)
+		x = np.linspace(power['Power [mW]'].min()*0.8, power['Power [mW]'].max()*1.3, 2**10)
 
 		# Perform the fitting routine
 		model = lmfit.Model(fit_linear) # Create the model
