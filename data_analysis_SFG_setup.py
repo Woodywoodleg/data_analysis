@@ -364,8 +364,8 @@ class SFG_power_dependence():
 
 		# Perform the fitting routine
 		model = lmfit.Model(fit_linear) # Create the model
-		params = model_linear.make_params(**initial_params) # Insert the fitting parameters
-		result = model_linear.fit(power_logy, params, x=power_logx) # Perform the fitting 
+		params = model.make_params(**initial_params) # Insert the fitting parameters
+		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting 
 
 		# Plot the resulting data
 		fig = plt.figure()
@@ -383,7 +383,7 @@ class SFG_power_dependence():
 
 		fig.set_tight_layout(True)
 		fig.show()
-		
+
 		return fig
 
 class SFG_load_spectrum_single():
