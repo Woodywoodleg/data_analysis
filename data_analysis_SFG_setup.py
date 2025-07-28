@@ -383,8 +383,8 @@ class SFG_power_dependence():
 
 		fig.set_tight_layout(True)
 		fig.show()
-		return fig
 		
+		return fig
 
 class SFG_load_spectrum_single():
 	def __init__(self, path_to_data_Bin1, path_to_data_Bin2):
