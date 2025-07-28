@@ -341,22 +341,22 @@ class SFG_power_dependence():
 	def plot_power_dependence(self, method='max', eV_range=None):
 		# Linear fit functions
 		def fit_linear(x, a, b):
-    		return a*x + b
+			return a*x + b
 
 		def fit_exponential(x, a, k):
-    		return a*x**k
+			return a*x**k
 
-    	# Isolate the peak of interest
-    	power = self.power_dependence(method=method, eV_range=eV_range)
+		# Isolate the peak of interest
+		power = self.power_dependence(method=method, eV_range=eV_range)
 
-    	# Create log axes
-    	power_logx = np.log(power['Power [mW]'].to_numpy())
+		# Create log axes
+		power_logx = np.log(power['Power [mW]'].to_numpy())
 		power_logy = np.log(power['Signal [a.u]'].to_numpy())
 
 		# Initial parameters for the fit
 		initial_params = {
-		    'a': 3,
-		    'b': 0
+			'a': 3,
+			'b': 0
 		}
 
 		# Create a new x-axis for plotting later on
