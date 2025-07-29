@@ -668,9 +668,7 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		fig.set_tight_layout(True)
 		fig.show()
-
 		return fig
-
 
 class SFG_PLE(SFG_power_dependence):
 	def __init__(self, path_to_data, path_to_data_wavelength):
