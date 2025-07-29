@@ -661,7 +661,7 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		ax = fig.add_subplot(gs[0,0], polar=True)
 		ax.scatter(polar['Angles [deg]']*np.pi/180, 
-			polar['Signal [a.u]'], color='r', label=f'{polar["Energy_loc [eV]"][0].value:.3f} eV')
+			polar['Signal [a.u]'], color='r', label=f'{polar["Energy_loc [eV]"][0]:.3f} eV')
 		ax.set_thetalim(0, np.pi)
 		ax.set_yticklabels([])
 		ax.legend(fontsize=7)
