@@ -660,14 +660,11 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 		gs = GridSpec(1,1, figure=fig)
 
 		ax = fig.add_subplot(gs[0,0], polar=True)
-		ax3c.scatter(polar_coherent['Angles [deg]']*np.pi/180, 
-			polar_coherent['Signal [a.u]'], color='r', label='1s coherent')
-		ax3c.scatter(polar_incoherent['Angles [deg]']*np.pi/180, 
-			polar_incoherent['Signal [a.u]'], color='k', label='incoherent')
-		# axe.scatter(x, y)
-		ax3c.set_thetalim(0, np.pi)
-		ax3c.set_yticklabels([])
-		ax3c.legend(fontsize=7)
+		ax.scatter(polar['Angles [deg]']*np.pi/180, 
+			polar['Signal [a.u]'], color='r', label=f'{polar['Energy_loc [eV]'][0]:.3f} eV')
+		ax.set_thetalim(0, np.pi)
+		ax.set_yticklabels([])
+		ax.legend(fontsize=7)
 
 		fig.set_tight_layout(True)
 		fig.show()
