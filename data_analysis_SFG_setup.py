@@ -652,6 +652,28 @@ class SFG_polarisation_dependence(SFG_power_dependence):
 
 		return self.signal_polar_max
 
+	def plot_polar(self, method='max', eV_range=None):
+		# Create the list for the peak
+		polar = self.polar_max(method=method, eV_range=eV_range)
+
+		fig = plt.figure()
+		gs = GridSpec(1,1, figure=fig)
+
+		ax = fig.add_subplot(gs[0,0], polar=True)
+		ax3c.scatter(polar_coherent['Angles [deg]']*np.pi/180, 
+			polar_coherent['Signal [a.u]'], color='r', label='1s coherent')
+		ax3c.scatter(polar_incoherent['Angles [deg]']*np.pi/180, 
+			polar_incoherent['Signal [a.u]'], color='k', label='incoherent')
+		# axe.scatter(x, y)
+		ax3c.set_thetalim(0, np.pi)
+		ax3c.set_yticklabels([])
+		ax3c.legend(fontsize=7)
+
+		fig.set_tight_layout(True)
+		fig.show()
+		return fig
+
+
 class SFG_PLE(SFG_power_dependence):
 	def __init__(self, path_to_data, path_to_data_wavelength):
 		self.path_to_data = path_to_data
