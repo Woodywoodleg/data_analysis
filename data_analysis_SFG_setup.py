@@ -321,6 +321,7 @@ class SFG_power_dependence():
 			return self.signal_power_dependence, self.signal_power_dependence_fit
 		else:
 			return self.signal_power_dependence
+			
 
 	def create_header(self):
 		pass
