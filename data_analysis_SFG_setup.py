@@ -316,7 +316,9 @@ class SFG_power_dependence():
 		self.signal_power_dependence_fit = pd.DataFrame({'Power [mW]': x, 'Signal [a.u.]': fit_exponential(x=x, a=np.exp(result.params['b'].value), k=result.params['a'].value)})
 
 		if return_fit:
-			return self.signal_power_dependence, self.signal_power_dependence_fit, self.signal_power_dependence_fit_result
+			return {self.signal_power_dependence, 
+					self.signal_power_dependence_fit, 
+					self.signal_power_dependence_fit_result}
 		else:
 			return self.signal_power_dependence
 
