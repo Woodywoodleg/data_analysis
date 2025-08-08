@@ -295,9 +295,6 @@ class SFG_power_dependence():
 		def fit_exponential(x, a, k):
 			return a*x**k
 
-		# Isolate the peak of interest
-		power = self.power_dependence(method=method, eV_range=eV_range)
-
 		# Create log axes
 		power_logx = np.log(self.signal_power_dependence['Power [mW]'].to_numpy())
 		power_logy = np.log(self.signal_power_dependence['Signal [a.u]'].to_numpy())
@@ -317,11 +314,12 @@ class SFG_power_dependence():
 		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting 
 
 		self.signal_power_dependence_fit = pd.DataFrame({'Power [mW]': x, 'Signal [a.u.]': fit_exponential(x=x, a=np.exp(result.params['b'].value), k=result.params['a'].value)})
+
 		if return_fit:
 			return self.signal_power_dependence, self.signal_power_dependence_fit
 		else:
 			return self.signal_power_dependence
-			
+
 
 	def create_header(self):
 		pass
