@@ -265,7 +265,7 @@ class SFG_power_dependence():
 
 		return result
 
-	def power_dependence(self, method='max', eV_range=None):
+	def power_dependence(self, method='max', eV_range=None, return_fit=False):
 		# Create list contain all powers
 		self.signal_powers = self.signal.columns.tolist()
 		# Convert the list of strings into a list of numbers
@@ -317,8 +317,10 @@ class SFG_power_dependence():
 		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting 
 
 		self.signal_power_dependence_fit = pd.DataFrame({'Power [mW]': x, 'Signal [a.u.]': fit_exponential(x=x, a=np.exp(result.params['b'].value), k=result.params['a'].value)})
-
-		return self.signal_power_dependence, self.signal_power_dependence_fit
+		if return_fit:
+			return self.signal_power_dependence, self.signal_power_dependence_fit
+		else:
+			return self.signal_power_dependence
 
 	def create_header(self):
 		pass
