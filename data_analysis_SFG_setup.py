@@ -288,7 +288,37 @@ class SFG_power_dependence():
 			# Create a dataframe for containing the results
 			self.signal_power_dependence = pd.DataFrame({'Power [mW]': self.signal_powers, 'Signal [a.u]': temp_intensity, 'Energy_loc [eV]': temp_energy}) 
 
-		return self.signal_power_dependence
+		# Linear fit functions
+		def fit_linear(x, a, b):
+			return a*x + b
+
+		def fit_exponential(x, a, k):
+			return a*x**k
+
+		# Isolate the peak of interest
+		power = self.power_dependence(method=method, eV_range=eV_range)
+
+		# Create log axes
+		power_logx = np.log(self.signal_power_dependence['Power [mW]'].to_numpy())
+		power_logy = np.log(self.signal_power_dependence['Signal [a.u]'].to_numpy())
+
+		# Initial parameters for the fit
+		initial_params = {
+			'a': 3,
+			'b': 0
+		}
+
+		# Create a new x-axis for plotting later on
+		x = np.linspace(self.signal_power_dependence['Power [mW]'].min()*0.8, self.signal_power_dependence['Power [mW]'].max()*1.3, 2**10)
+
+		# Perform the fitting routine
+		model = lmfit.Model(fit_linear) # Create the model
+		params = model.make_params(**initial_params) # Insert the fitting parameters
+		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting 
+
+		self.signal_power_dependence_fit = pd.DataFrame({'Power [mW]': x, 'Signal [a.u.]': fit_exponential(x=x, a=np.exp(result.params['b'].value), k=result.params['a'].value)})
+
+		return self.signal_power_dependence, self.signal_power_dependence_fit
 
 	def create_header(self):
 		pass
