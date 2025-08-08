@@ -311,14 +311,15 @@ class SFG_power_dependence():
 		# Perform the fitting routine
 		model = lmfit.Model(fit_linear) # Create the model
 		params = model.make_params(**initial_params) # Insert the fitting parameters
-		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting 
+		result = model.fit(power_logy, params, x=power_logx) # Perform the fitting
+		self.signal_power_dependence_fit_result = result 
 
 		self.signal_power_dependence_fit = pd.DataFrame({'Power [mW]': x, 'Signal [a.u.]': fit_exponential(x=x, a=np.exp(result.params['b'].value), k=result.params['a'].value)})
 
 		if return_fit:
-			return {self.signal_power_dependence, 
-					self.signal_power_dependence_fit, 
-					self.signal_power_dependence_fit_result}
+			return {'signal_power_dependence': self.signal_power_dependence, 
+					'signal_power_dependence_fit': self.signal_power_dependence_fit, 
+					'fit_result': self.signal_power_dependence_fit_result}
 		else:
 			return self.signal_power_dependence
 
