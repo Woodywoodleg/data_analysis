@@ -4,8 +4,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import httpimport
-with httpimport.github_repo('woodywoodleg', 'thzsnom', ref='master'):
-	from snom_microscope_reader import ImageLoader
 from matplotlib.gridspec import GridSpec
 import glob
 import re
