@@ -214,17 +214,6 @@ class OceanOptics_spectrum():
 
 if __name__ == '__main__':
 
-	path = r'C:\Users\h_las\OneDrive\RIKEN\data\SPDC MaiTai\20250930_PPSLT_SHG_spectrum_sweep'
-	path2 = r'C:\Users\h_las\OneDrive\RIKEN\data\SPDC MaiTai\20251002_PPSLT_SHG_spectrum_sweep'
 
-	data = spectrometer_SHG(path_to_data=path)
-	data2 = spectrometer_SHG(path_to_data=path2)
 
-	spectrum = OceanOptics_spectrum(r'C:\Users\h_las\OneDrive\RIKEN\data\SPDC MaiTai\MaiTai_spectrum\20252002_Maitai_spectrum_centerset_760_int_100ms.txt')
-	spectrum2 = OceanOptics_spectrum(r"C:\Users\h_las\OneDrive\RIKEN\data\SPDC MaiTai\MaiTai_spectrum\20252002_Maitai_spectrum_centerset_760_int_50ms_3.txt")
-	spectrum3 = OceanOptics_spectrum(r"C:\Users\h_las\OneDrive\RIKEN\data\SPDC MaiTai\MaiTai_spectrum\20252002_Maitai_spectrum_centerset_760_int_100ms_2_reducedND.txt")
-
-	spectrum.plot_spectrum(title='MaiTai spectrum 100ms', xlim=(720, 800))
-	spectrum2.plot_spectrum(title='MaiTai spectrum 50ms', xlim=(720, 800))
-	spectrum3.plot_spectrum(title='MaiTai spectrum 100ms lower power', xlim=(720, 800))
 
