@@ -80,14 +80,8 @@ class spectrometer_SHG():
 				self.data.append(df_corr)
 		else:
 			self.data = []
-			for df in zip(self.dataframes):
-
-				df_corr = df.copy()
-				df_corr.iloc[:, 1] = df.values[:, 1]
-
-				# keep the metadata from the original
-				df_corr.attrs.update(df.attrs)
-				self.data.append(df_corr)
+			for df in self.dataframes:
+				self.data.append(df)
 
 	def plot_all_spectra(self, figsize=(10,6), xlim=None):
 
