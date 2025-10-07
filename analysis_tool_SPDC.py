@@ -43,6 +43,7 @@ def load_one_file(path: str) -> pd.DataFrame:
 class spectrometer_SHG():
 	def __init__(self, path_to_data='./', dark_count_data=True):
 		self.path_to_data = Path(path_to_data)
+		self._dark_count_data = dark_count_data
 		self.cd_script = os.getcwd() # Get directory containing script
 		self.load_data()
 		self.change_cd_back()
@@ -53,7 +54,7 @@ class spectrometer_SHG():
 	def load_data(self):
 		all_files = sorted(glob.glob(str(self.path_to_data / "*.dat")))
 
-		if dark_count_data:
+		if self._dark_count_data:
 			self._dc_files   = [f for f in all_files if f.endswith("_dc.dat")]
 			self._data_files = [f for f in all_files if not f.endswith("_dc.dat")]
 			# make lists of DataFrames
@@ -64,7 +65,7 @@ class spectrometer_SHG():
 			# make lists of DataFrames
 			self.dataframes = [load_one_file(f) for f in self._data_files]
 
-		if dark_count_data:
+		if self._dark_count_data:
 			self.data = []
 			for df, dc in zip(self.dataframes, self.dataframes_dc):
 				# sanity check: same shape
