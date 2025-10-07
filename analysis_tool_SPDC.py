@@ -41,7 +41,7 @@ def load_one_file(path: str) -> pd.DataFrame:
     return df
 
 class spectrometer_SHG():
-	def __init__(self, path_to_data='./'):
+	def __init__(self, path_to_data='./', dark_count_data=True):
 		self.path_to_data = Path(path_to_data)
 		self.cd_script = os.getcwd() # Get directory containing script
 		self.load_data()
@@ -52,25 +52,41 @@ class spectrometer_SHG():
 
 	def load_data(self):
 		all_files = sorted(glob.glob(str(self.path_to_data / "*.dat")))
-		self._dc_files   = [f for f in all_files if f.endswith("_dc.dat")]
-		self._data_files = [f for f in all_files if not f.endswith("_dc.dat")]
 
-		# make lists of DataFrames
-		self.dataframes = [load_one_file(f) for f in self._data_files]
-		self.dataframes_dc = [load_one_file(f) for f in self._dc_files]
+		if dark_count_data:
+			self._dc_files   = [f for f in all_files if f.endswith("_dc.dat")]
+			self._data_files = [f for f in all_files if not f.endswith("_dc.dat")]
+			# make lists of DataFrames
+			self.dataframes = [load_one_file(f) for f in self._data_files]
+			self.dataframes_dc = [load_one_file(f) for f in self._dc_files]
+		else:
+			self._data_files =[f for f in all_files]
+			# make lists of DataFrames
+			self.dataframes = [load_one_file(f) for f in self._data_files]
 
-		self.data = []
-		for df, dc in zip(self.dataframes, self.dataframes_dc):
-			# sanity check: same shape
-			if df.shape != dc.shape:
-				raise ValueError(f"Shape mismatch between {df.attrs['filename']} and {dc.attrs['filename']}")
+		if dark_count_data:
+			self.data = []
+			for df, dc in zip(self.dataframes, self.dataframes_dc):
+				# sanity check: same shape
+				if df.shape != dc.shape:
+					raise ValueError(f"Shape mismatch between {df.attrs['filename']} and {dc.attrs['filename']}")
 
-			df_corr = df.copy()
-			df_corr.iloc[:, 1] = df.values[:, 1] - dc.values[:, 1]  # subtract elementwise
+				df_corr = df.copy()
+				df_corr.iloc[:, 1] = df.values[:, 1] - dc.values[:, 1]  # subtract elementwise
 
-			# keep the metadata from the original
-			df_corr.attrs.update(df.attrs)
-			self.data.append(df_corr)
+				# keep the metadata from the original
+				df_corr.attrs.update(df.attrs)
+				self.data.append(df_corr)
+		else:
+			self.data = []
+			for df in zip(self.dataframes):
+
+				df_corr = df.copy()
+				df_corr.iloc[:, 1] = df.values[:, 1]
+
+				# keep the metadata from the original
+				df_corr.attrs.update(df.attrs)
+				self.data.append(df_corr)
 
 	def plot_all_spectra(self, figsize=(10,6), xlim=None):
 
