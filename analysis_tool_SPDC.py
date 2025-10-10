@@ -83,6 +83,15 @@ class spectrometer_SHG():
 			for df in self.dataframes:
 				self.data.append(df)
 
+		power_rows = []
+		for df in self.data:
+			power_rows.append({
+				'Position': df.attrs['deltax_mm'],
+				'Power': df.attrs['power_mW']
+				})
+
+		self.power_SHG = pd.DataFrame(power_rows, columns=['Position', 'Power'])
+
 	def plot_all_spectra(self, figsize=(10,6), xlim=None):
 
 		fig = plt.figure(figsize=figsize)
