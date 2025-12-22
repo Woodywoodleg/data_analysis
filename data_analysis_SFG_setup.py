@@ -11,10 +11,12 @@ import glob
 import re
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
-from lmfit.models import GaussianModel, LorentzianModel
+from lmfit.models import GaussianModel, LorentzianModel, LinearModel
 from lmfit import Model
 from lmfit import Parameters
 import lmfit
+import cmasher as cmr
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class Raman_spectrum():
 	def __init__(self, path_to_data='./'):
@@ -85,6 +87,9 @@ class SFG_power_dependence():
 			self.convert_column_to_watts()
 			self.load_data_wavelength_axis()
 			self.change_cd_back()
+			self.fit_neon_peaks()
+			self.calibrate_neon_axis_inplace(degree=1)
+			self.swap_wavelength_axes()
 
 	def change_cd_back(self):
 		os.chdir(self.cd_script) # Change directory back to where the script is located
@@ -223,6 +228,189 @@ class SFG_power_dependence():
 		self.energy_200um = 1238.9/self.wavelength_200um
 
 		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
+
+	def fit_neon_peaks(self, fit_type='Lorentzian', nm_range=535,
+               fit_min=530, fit_max=579, window=0.6):
+	    # Known Ne lines in this region (nm). Use as anchors / bounds.
+	    if nm_range == 535:
+	        # neon_peaks = [533.08, 534.11, 540.08]
+	        neon_peaks = [531.7, 532.7, 539, 576.3, 578]
+	    else:
+	        raise NotImplementedError("Add other nm_range presets")
+
+	    # Fit range mask
+	    mask = (self.Ne_100um['Wavelength'] >= fit_min) & (self.Ne_100um['Wavelength'] <= fit_max)
+	    x = np.asarray(self.Ne_100um['Wavelength'][mask], dtype=float)
+	    y = np.asarray(self.Ne_100um['Ne'][mask], dtype=float)
+
+	    # Choose peak model
+	    PeakModel = GaussianModel if fit_type == 'Gaussian' else LorentzianModel
+
+	    # Add a baseline (strongly recommended)
+	    model = LinearModel(prefix='bkg_')
+	    params = model.make_params(intercept=np.median(y), slope=0.0)
+
+	    # Build composite peaks with good initial guesses and bounds
+	    for i, mu in enumerate(neon_peaks, start=1):
+	        prefix = f'p{i}_'
+	        pk = PeakModel(prefix=prefix)
+	        model += pk
+
+	        # Guess parameters using a small window around each expected line
+	        wmask = (x >= mu - window) & (x <= mu + window)
+	        if np.count_nonzero(wmask) < 5:
+	            # fallback if window too small / sparse
+	            wmask = slice(None)
+
+	        p0 = pk.guess(y[wmask], x=x[wmask])
+	        params.update(p0)
+
+	        # Constrain center tightly so peaks can't swap
+	        params[prefix + 'center'].set(value=mu, min=mu - window, max=mu + window)
+
+	        # Constrain sigma to reasonable values (tune for your instrument)
+	        params[prefix + 'sigma'].set(min=0.02, max=1.0)
+
+	        # Enforce positive amplitude
+	        params[prefix + 'amplitude'].set(min=0)
+
+	    # Fit
+	    self.result = model.fit(y, params, x=x)
+	    x_dense = np.linspace(x.min(), x.max(), 5000)
+	    y_dense = self.result.eval(x=x_dense)
+
+	    # Plot
+	    comps = self.result.eval_components(x=x)
+	    comps_dense = self.result.eval_components(x=x_dense)
+	   
+
+	    fig = plt.figure()
+	    ax = fig.add_subplot(111)
+	    ax.plot(x, y, 'k.', label='Data')
+	    ax.plot(x_dense, y_dense, '-', label='Total fit')
+
+	    # baseline
+	    ax.plot(x, comps['bkg_'], '--', label='Background')
+
+	    # peaks
+	    # for k in sorted(comps.keys()):
+	    #     if k.startswith('p'):
+	    #         ax.plot(x, comps[k], '--', label=k)
+
+	     # peaks
+	    for k in sorted(comps_dense.keys()):
+	        if k.startswith('p'):
+	            ax.plot(x_dense, comps_dense[k], '--', label=k)
+
+	    ax.set_xlim(fit_min, fit_max)
+	    ax.set_xlabel('Wavelength [nm]')
+	    ax.set_ylabel('Counts [a.u.]')
+	    ax.legend()
+	    fig.tight_layout()
+	    plt.show()
+
+	    return self.result
+
+	def build_wavelength_calibration_from_neon(
+	    self,
+	    true_centers_nm=(533.08, 534.11, 540.08, 574.83, 576.44),
+	    peak_prefix='p',          # 'g' if your params are g1_center, g2_center...
+	    n_peaks=5,
+	    degree=1,                # 1=linear, 2=quadratic
+	    store_attr_name='wl_cal'):  # where to store results on self
+
+	    if not hasattr(self, 'result') or self.result is None:
+	        raise RuntimeError("No fit result found. Run fit_neon_peaks() first.")
+
+	    # --- measured centres from lmfit result ---
+	    meas_centers = []
+	    for i in range(1, n_peaks + 1):
+	        key = f'{peak_prefix}{i}_center'
+	        if key not in self.result.params:
+	            raise KeyError(f"Could not find '{key}' in self.result.params. "
+	                           f"Available keys: {list(self.result.params.keys())[:10]} ...")
+	        meas_centers.append(self.result.params[key].value)
+	    meas_centers = np.array(meas_centers, dtype=float)
+
+	    true_centers = np.array(true_centers_nm, dtype=float)
+	    if len(true_centers) != n_peaks:
+	        raise ValueError(f"true_centers_nm has length {len(true_centers)} but n_peaks={n_peaks}")
+
+	    # --- fit mapping true = f(meas) ---
+	    coef = np.polyfit(meas_centers, true_centers, deg=degree)
+
+	    pred = np.polyval(coef, meas_centers)
+	    residuals = true_centers - pred
+	    rms_nm = float(np.sqrt(np.mean(residuals**2)))
+	    max_abs_nm = float(np.max(np.abs(residuals)))
+
+	    # store
+	    setattr(self, store_attr_name, dict(
+	        degree=degree,
+	        coef=coef,
+	        meas_centers=meas_centers,
+	        true_centers=true_centers,
+	        residuals_nm=residuals,
+	        rms_nm=rms_nm,
+	        max_abs_nm=max_abs_nm
+	    ))
+
+	    return getattr(self, store_attr_name)
+
+	def apply_wavelength_calibration(
+	    self,
+	    df,
+	    coef=None,
+	    store_attr_name='wl_cal',
+	    wl_col='Wavelength',
+	    out_col='Wavelength_cal'
+	):
+	    """
+	    Apply the stored calibration to a dataframe with a wavelength column.
+
+	    If coef is None, uses self.<store_attr_name>['coef'].
+	    Writes a new column 'out_col' and returns df (also modifies it in-place).
+	    """
+	    if coef is None:
+	        if not hasattr(self, store_attr_name):
+	            raise RuntimeError(f"No stored calibration found at self.{store_attr_name}. "
+	                               "Run build_wavelength_calibration_from_neon() first.")
+	        coef = getattr(self, store_attr_name)['coef']
+
+	    wl = np.asarray(df[wl_col], dtype=float)
+	    df[out_col] = np.polyval(coef, wl)
+	    return df
+
+	def calibrate_neon_axis_inplace(
+	    self,
+	    degree=1,
+	    true_centers_nm=(533.08, 534.11, 540.08, 574.83, 576.44),
+	    wl_col='Wavelength',
+	    out_col='Wavelength_cal'
+	):
+	    """
+	    Convenience method: build calibration from self.result and apply to self.Ne_100um.
+	    """
+	    info = self.build_wavelength_calibration_from_neon(
+	        true_centers_nm=true_centers_nm,
+	        degree=degree,
+	        peak_prefix='p',
+	        n_peaks=5,
+	        store_attr_name='wl_cal'
+	    )
+	    self.apply_wavelength_calibration(self.Ne_100um, coef=info['coef'],
+	                                      wl_col=wl_col, out_col=out_col)
+	    return info
+	
+
+	def swap_wavelength_axes(self):
+
+		old = self.Ne_100um['Wavelength']
+		new = self.Ne_100um['Wavelength_cal']
+
+		self.Ne_100um['Wavelength'] = new
+		self.Ne_100um['Wavelength_raw'] = old
+
 
 	def fit_to_peak(self, spectrum, xaxis, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None, eV_range=None, nm_range=None):
 
@@ -767,10 +955,14 @@ class SFG_PLE(SFG_power_dependence):
 
 				self.signal_raw[wavelength] = self.signal[wavelength]
 
-			self.signal_raw[self.signal_raw < - 5] = 1e-8
-			self.signal[self.signal < -5] = 1e-8
+			self.signal_raw[self.signal_raw < 1e-8] = 1e-8
+			self.signal[self.signal < 1e-8] = 1e-8
 
 			self.signal_normalised = self.signal / self.signal.max()
+
+			self.signal = np.flipud(np.rot90(self.signal))
+
+			self.signal_log10 = np.log10(self.signal)
 
 		elif len(SFG_files) < 2:
 			print('Error: Appears to be missing either background or signal file.')
@@ -782,8 +974,47 @@ class SFG_PLE(SFG_power_dependence):
 		return self.signal
 
 	def create_PLE_axis(self):
-		self.PLE_wavelength = self.signal.columns.to_numpy()
+		self.PLE_wavelength = self.signal_raw.columns.to_numpy()
 		self.PLE_energy = 1238.9/self.PLE_wavelength
+
+	def plot_PLE_nm(self, figsize=(10,8), cmap=cmr.iceburn):
+
+		fig = plt.figure(figsize=figsize)
+		gs = GridSpec(1,1, figure=fig)
+
+		axa = fig.add_subplot(gs[0,0])
+		cm = axa.pcolormesh(PLE_1.wavelength_100um, PLE_1.PLE_wavelength, PLE_1.signal_log10, cmap=cmap, shading='auto')
+		axa.set_xlabel('Emission Wavelength [nm]')
+		axa.set_ylabel('Excitation Wavelength [nm]')
+
+		divider = make_axes_locatable(axa)
+		caxa = divider.append_axes('right', size='5%', pad=0.05)
+
+		fig.colorbar(cm, cax=caxa, orientation='vertical')
+		fig.set_tight_layout(True)
+		fig.show()
+
+		return fig
+
+	def plot_PLE_eV(self, figsize=(10,8), cmap=cmr.iceburn):
+
+		fig = plt.figure(figsize=figsize)
+		gs = GridSpec(1,1, figure=fig)
+
+		axa = fig.add_subplot(gs[0,0])
+		cm = axa.pcolormesh(PLE_1.energy_100um, PLE_1.PLE_energy, PLE_1.signal_log10, cmap=cmap, shading='auto')
+		axa.set_xlabel('Emission Wavelength [nm]')
+		axa.set_ylabel('Excitation Wavelength [nm]')
+
+		divider = make_axes_locatable(axa)
+		caxa = divider.append_axes('right', size='5%', pad=0.05)
+
+		fig.colorbar(cm, cax=caxa, orientation='vertical')
+		fig.set_tight_layout(True)
+		fig.show()
+
+		return fig
+
 
 class SFG_reflection(SFG_power_dependence):
 	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength):
@@ -901,14 +1132,27 @@ if __name__ == "__main__":
 	pl_lambda_sweep = PL_wavelength_sweep(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG\10K\Visible wavelength sweep',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241010-SFG')
 
-	data2 = SFG_power_dependence(path_to_data=r'C:\Users\h_las\Documents\20241112-SFG\SFG 1300LPF ND100k x 100avg x 10set\set1',
-		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241112-SFG',
-		scan_type='IR')
-
-	data = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241115-SFG 100 avg\new bulk 100 avg\PLE 540-525nm 50 avg para-perp\set1',
-		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241115-SFG 100 avg')
-
-
 	test = SFG_reflection(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG\Reflection CsPbBr3',
 		path_to_reference=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG\Reflection SiO2-Si',
 		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241126-SFG')
+
+	neon_test_1 = SFG_power_dependence(path_to_data=r'C:\Users\h_las\Documents\20241112-SFG polarisation\SFG full power dependence',
+		path_to_data_wavelength=r'C:\Users\h_las\Documents\20241112-SFG polarisation',
+		scan_type='IR')
+	neon_test_2 = SFG_power_dependence(path_to_data=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241224-SFG\NL full power dep',
+		path_to_data_wavelength=r'C:\Users\h_las\OneDrive\Kyoto University\Post doc\Data\samples\CsPbBr3\bulk\20241224-SFG',
+		scan_type='IR')
+
+	PLE_1 = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241230-PLE\PLE 540-525nm 40nW',
+    	path_to_data_wavelength=r'C:\Users\h_las\Documents\20241224-SFG')
+
+	# PLE_2 = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241230-PLE\PLE 540-525nm 40nW repeat',
+    # 	path_to_data_wavelength=r'C:\Users\h_las\Documents\20241224-SFG')
+
+	# PLE_3 = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241230-PLE\PLE 540-525nm 40nW repeat 2',
+    # 	path_to_data_wavelength=r'C:\Users\h_las\Documents\20241224-SFG')
+
+	# PLE_4 = SFG_PLE(path_to_data=r'C:\Users\h_las\Documents\20241230-PLE\PLE 540-525nm 40nW repeat 3',
+    # 	path_to_data_wavelength=r'C:\Users\h_las\Documents\20241224-SFG')
+
+
