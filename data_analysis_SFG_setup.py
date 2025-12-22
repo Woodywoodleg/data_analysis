@@ -87,9 +87,10 @@ class SFG_power_dependence():
 			self.convert_column_to_watts()
 			self.load_data_wavelength_axis()
 			self.change_cd_back()
-			self.fit_neon_peaks()
-			self.calibrate_neon_axis_inplace(degree=1)
-			self.swap_wavelength_axes()
+			# self.fit_neon_peaks()
+			# self.calibrate_neon_axis_inplace(degree=1)
+			# self.swap_wavelength_axes()
+			# self.convert_axis_to_eV()
 
 	def change_cd_back(self):
 		os.chdir(self.cd_script) # Change directory back to where the script is located
@@ -227,10 +228,15 @@ class SFG_power_dependence():
 		self.energy_100um = 1238.9/self.wavelength_100um
 		self.energy_200um = 1238.9/self.wavelength_200um
 
+		self.fit_neon_peaks()
+		self.calibrate_neon_axis_inplace(degree=1)
+		self.swap_wavelength_axes()
+		self.convert_axis_to_eV()
+
 		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
 
 	def fit_neon_peaks(self, fit_type='Lorentzian', nm_range=535,
-               fit_min=530, fit_max=579, window=0.6):
+               fit_min=530, fit_max=579, window=0.6, show_fig=False):
 	    # Known Ne lines in this region (nm). Use as anchors / bounds.
 	    if nm_range == 535:
 	        # neon_peaks = [533.08, 534.11, 540.08]
@@ -283,31 +289,32 @@ class SFG_power_dependence():
 	    comps = self.result.eval_components(x=x)
 	    comps_dense = self.result.eval_components(x=x_dense)
 	   
+	    if show_fig:
+		    fig = plt.figure()
+		    ax = fig.add_subplot(111)
+		    ax.plot(x, y, 'k.', label='Data')
+		    ax.plot(x_dense, y_dense, '-', label='Total fit')
 
-	    fig = plt.figure()
-	    ax = fig.add_subplot(111)
-	    ax.plot(x, y, 'k.', label='Data')
-	    ax.plot(x_dense, y_dense, '-', label='Total fit')
+		    # baseline
+		    ax.plot(x, comps['bkg_'], '--', label='Background')
 
-	    # baseline
-	    ax.plot(x, comps['bkg_'], '--', label='Background')
+		    # peaks
+		    # for k in sorted(comps.keys()):
+		    #     if k.startswith('p'):
+		    #         ax.plot(x, comps[k], '--', label=k)
 
-	    # peaks
-	    # for k in sorted(comps.keys()):
-	    #     if k.startswith('p'):
-	    #         ax.plot(x, comps[k], '--', label=k)
+		     # peaks
+		    for k in sorted(comps_dense.keys()):
+		        if k.startswith('p'):
+		            ax.plot(x_dense, comps_dense[k], '--', label=k)
 
-	     # peaks
-	    for k in sorted(comps_dense.keys()):
-	        if k.startswith('p'):
-	            ax.plot(x_dense, comps_dense[k], '--', label=k)
+		    ax.set_xlim(fit_min, fit_max)
+		    ax.set_xlabel('Wavelength [nm]')
+		    ax.set_ylabel('Counts [a.u.]')
+		    ax.legend()
+		    fig.tight_layout()
+		    plt.show()
 
-	    ax.set_xlim(fit_min, fit_max)
-	    ax.set_xlabel('Wavelength [nm]')
-	    ax.set_ylabel('Counts [a.u.]')
-	    ax.legend()
-	    fig.tight_layout()
-	    plt.show()
 
 	    return self.result
 
@@ -401,7 +408,6 @@ class SFG_power_dependence():
 	    self.apply_wavelength_calibration(self.Ne_100um, coef=info['coef'],
 	                                      wl_col=wl_col, out_col=out_col)
 	    return info
-	
 
 	def swap_wavelength_axes(self):
 
@@ -410,6 +416,9 @@ class SFG_power_dependence():
 
 		self.Ne_100um['Wavelength'] = new
 		self.Ne_100um['Wavelength_raw'] = old
+
+	def convert_axis_to_eV(self):
+		self.energy_100um = 1238.9/self.Ne_100um['Wavelength']
 
 
 	def fit_to_peak(self, spectrum, xaxis, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None, eV_range=None, nm_range=None):
