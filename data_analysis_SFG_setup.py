@@ -421,7 +421,15 @@ class SFG_power_dependence():
 		self.energy_100um = 1238.9/self.Ne_100um['Wavelength']
 
 
-	def fit_to_peak(self, spectrum, xaxis, fit_type='Gaussian', peaks=2, A=None, x_0=None, sigma=None, gamma=None, eV_range=None, nm_range=None):
+	def fit_to_peak(self, spectrum, xaxis, 
+		fit_type='Gaussian', 
+		peaks=2, 
+		A=None, 
+		x_0=None, 
+		sigma=None, 
+		gamma=None, 
+		eV_range=None, 
+		nm_range=None):
 
 		# Slice the spectrum if boundaries are given either in eV or nm
 		if eV_range:
@@ -462,7 +470,10 @@ class SFG_power_dependence():
 
 		return result
 
-	def power_dependence(self, method='max', eV_range=None, return_fit=False):
+	def power_dependence(self, method='max', 
+		eV_range=None, 
+		return_fit=False):
+	
 		# Create list contain all powers
 		self.signal_powers = self.signal.columns.tolist()
 		# Convert the list of strings into a list of numbers
