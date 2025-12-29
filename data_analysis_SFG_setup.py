@@ -228,10 +228,10 @@ class SFG_power_dependence():
 		self.energy_100um = 1238.9/self.wavelength_100um
 		self.energy_200um = 1238.9/self.wavelength_200um
 
-		# self.fit_neon_peaks()
-		# self.calibrate_neon_axis_inplace(degree=1)
-		# self.swap_wavelength_axes()
-		# self.convert_axis_to_eV()
+		self.fit_neon_peaks()
+		self.calibrate_neon_axis_inplace(degree=1)
+		self.swap_wavelength_axes()
+		self.convert_axis_to_eV()
 
 		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
 
