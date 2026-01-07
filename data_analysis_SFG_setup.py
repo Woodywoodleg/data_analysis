@@ -1038,7 +1038,7 @@ class SFG_PLE(SFG_power_dependence):
 
 
 class SFG_reflection(SFG_power_dependence):
-	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength):
+	def __init__(self, path_to_data, path_to_reference, path_to_data_wavelength, calibrate_axis=True):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.path_to_reference = path_to_reference
@@ -1046,7 +1046,7 @@ class SFG_reflection(SFG_power_dependence):
 		super().__init__(path_to_data, path_to_data_wavelength, scan_type='Visible', init_extra=False)
 		# self.load_data_reflection(path=self.path_to_data)
 		self.referenced()
-		self.load_data_wavelength_axis()
+		self.load_data_wavelength_axis(calibrate_axis=calibrate_axis)
 		self.change_cd_back()
 
 	def load_data_reflection(self, path):
