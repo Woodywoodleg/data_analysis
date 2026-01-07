@@ -77,7 +77,7 @@ class Photoluminescence_spectrum():
 		fig.show()
 
 class SFG_power_dependence():
-	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR', init_extra=True):
+	def __init__(self, path_to_data, path_to_data_wavelength, scan_type='IR', init_extra=True, calibrate_axis=True):
 		self.path_to_data = path_to_data
 		self.path_to_data_wavelength = path_to_data_wavelength
 		self.scan_type = scan_type
@@ -85,7 +85,7 @@ class SFG_power_dependence():
 		if init_extra:
 			self.load_data()
 			self.convert_column_to_watts()
-			self.load_data_wavelength_axis()
+			self.load_data_wavelength_axis(calibrate_axis=calibrate_axis)
 			self.change_cd_back()
 			# self.fit_neon_peaks()
 			# self.calibrate_neon_axis_inplace(degree=1)
@@ -203,7 +203,7 @@ class SFG_power_dependence():
 						self.signal.iloc[:,i].iloc[peak+i] = left_value / 2   
 
 
-	def load_data_wavelength_axis(self):
+	def load_data_wavelength_axis(self, calibrate_axis=True):
 		os.chdir(self.path_to_data_wavelength) # Set current directory to the folder containing the files of interest
 
 		self.all_files_axis = [] # Create empty array to contain all txt files in the directory
@@ -228,10 +228,11 @@ class SFG_power_dependence():
 		self.energy_100um = 1238.9/self.wavelength_100um
 		self.energy_200um = 1238.9/self.wavelength_200um
 
-		self.fit_neon_peaks()
-		self.calibrate_neon_axis_inplace(degree=1)
-		self.swap_wavelength_axes()
-		self.convert_axis_to_eV()
+		if calibrate_axis:
+			self.fit_neon_peaks()
+			self.calibrate_neon_axis_inplace(degree=1)
+			self.swap_wavelength_axes()
+			self.convert_axis_to_eV()
 
 		return self.wavelength_100um, self.wavelength_200um, self.energy_100um, self.energy_200um
 
