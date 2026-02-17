@@ -49,7 +49,8 @@ class QuasiPhaseMatching():
 		self.lambda_p = lambda_p
 		self.temperature = temperature
 		self.crystal_period = self.temperature_dependent_grating_period(crystal_period=crystal_period, material=material)
-		if material in ('PPLN_Zelmon', 'MgO:PPLN_Zelmon', 'MgO:PPLN_Gayer', 'MgO:PPSLT_Dolev'):
+		if material in ('PPLN_Zelmon', 'MgO:PPLN_Zelmon', 'MgO:PPLN_Gayer', 'MgO:PPLN',
+		 'MgO:PPSLT_Dolev', 'MgO:PPSLT', 'PPLBGO', 'LBGO'):
 			self.ne_p, self.no_p = self.sellmeier_equations(wavelength=lambda_p, lvl=1)
 		else:
 			self.ne_p = self.sellmeier_equations(wavelength=lambda_p, lvl=1)
@@ -191,6 +192,13 @@ class QuasiPhaseMatching():
 			reference_text = f'Dolev et al. 2009 (DOI: 10.1007/s00340-009-3502-3)'
 			refractive_index_text = f'n_e, n_o'
 			temperature_text = f'Yes'
+		elif material in ('PPLBGO', 'LBGO'):
+			material_text = f'PPLBGO'
+			reference_text = f'Umemura et al. 2019 (DOI: 10.1364/OME.9.002159)'
+			refractive_index_text = f'n_e, n_o'
+			temperature_text = f'Yes'
+			self._alpha = 0 # Currently no data on crystal expansion coefficient 
+			self._beta = 0 # Currently no data on crystal expansion coefficient
 		else:
 			return print('Please choose an indexed material.')
 
@@ -356,14 +364,35 @@ class QuasiPhaseMatching():
 
 			return n_e
 
+		elif material in ("PPLBGO", "LBGO"):
+			dT = temperature - 22.0
+
+			# Sellmeier at 22 °C (Eq. 1)
+			ne_22 = np.sqrt(3.3650 + 0.03080 / (wavelength**2 - 0.01946) - 0.01176 * wavelength**2)
+			no_22 = np.sqrt(3.2187 + 0.03194 / (wavelength**2 - 0.01039) - 0.00661 * wavelength**2)
+
+			# Thermo-optic dispersion dn/dT (Eq. 2)
+			dne_dT = (0.1127 / wavelength**3 - 0.5543 / wavelength**2 + 1.0902 / wavelength + 0.2343) * 1e-5
+			dno_dT = (0.1859 / wavelength**3 - 0.9308 / wavelength**2 + 1.6877 / wavelength + 0.4327) * 1e-5
+
+			n_e = ne_22 + dne_dT * dT
+			n_o = no_22 + dno_dT * dT
+
+			return n_e, n_o
+
 		else:
 			print('Please select suitable material.')
 
-	def refractive_indices(self, material=None):
+	def refractive_indices(self, material=None, wavelength_min=300e-9, wavelength_max=1500e-9, temperature=None, wavelength_steps=2**14):
 		'''
 		Calculate the ordinary and extraordinary refractive index based on material.
 		'''
-		pass
+		
+		wavelength = np.linspace(wavelength_min, wavelength_max, wavelength_steps)
+
+		ne, no = self.sellmeier_equations(material=material, temperature=temperature, wavelength=wavelength)
+
+		return ne, no
 
 	def temperature_dependent_grating_period(self, crystal_period, temperature=None, material=None):
 		'''
@@ -389,11 +418,14 @@ class QuasiPhaseMatching():
 
 		self.material_setup(material=material)
 
-		period = crystal_period*(1 + self._alpha*(temperature-25) + self._beta*(temperature-25)**2)
+		if ('self._alpha', 'self._beta') in globals():
+			period = crystal_period*(1 + self._alpha*(temperature-25) + self._beta*(temperature-25)**2)
+		else:
+			period = crystal_period
 
 		return period
 
-	def refractive_index_angle(self, ne, no, theta, phi=0):
+	def refractive_index_arngle(self, ne, no, theta, phi=0):
 		'''
 		Function for calculating the effective extraordinary refractive index experienced by being at an angle to
 				the optic axis, theta.
@@ -874,7 +906,7 @@ class QuasiPhaseMatching():
 		fig2.set_tight_layout(True)
 		fig2.show()
 
-	def plot_refractive_indices(self, show_residual=True):
+	def plot_refractive_indices_PPLN(self, show_residual=True):
 		wavelength = np.linspace(500e-9, 7e-6, 2**14)
 
 		ne_PPLN_Gayer, no_PPLN_Gayer = self.sellmeier_equations(wavelength=wavelength, material='MgO:PPLN_Gayer')
@@ -1432,7 +1464,7 @@ class QuasiPhaseMatching():
 
 		ne_p, no_p = self.sellmeier_equations(wavelength=lambda_p, 
 															material=material, temperature=temperature)
-		ne_s,  no_s = self.sellmeier_equations(wavelength=lambda_s, 
+		ne_s, no_s = self.sellmeier_equations(wavelength=lambda_s, 
 															material=material, temperature=temperature)
 		ne_i, no_i = self.sellmeier_equations(wavelength=lambda_i, 
 															material=material, temperature=temperature)
@@ -1468,7 +1500,7 @@ class QuasiPhaseMatching():
 		axa.set_ylabel('Poling Period [$\\mu$m]')
 		axa.set_xlabel('Signal wavelength [nm]')
 		axa.set_ylim(ylim[0], ylim[1])
-		axa.set_xlim((lambda_p+50e-9)*1e9, lambda_s_max*1e9)
+		axa.set_xlim(lambda_s_min*1e9, lambda_s_max*1e9)
 		# axa.legend()
 
 		axa2 = axa.twiny()
@@ -1595,17 +1627,52 @@ class QuasiPhaseMatching():
 		fig.show()
 		# plt.close(fig2)
 
+	def plot_refractive_indices(self, figsize=(10,6), material=None, wavelength_min=300e-9, 
+		wavelength_max=1500e-9, temperature=None, wavelength_steps=2**14):
+
+		ne, no = self.refractive_indices(material=None, wavelength_min=wavelength_min, 
+			wavelength_max=wavelength_max, temperature=temperature, wavelength_steps=wavelength_steps)
+
+		wavelength = np.linspace(wavelength_min, wavelength_max, wavelength_steps)
+
+		fig = plt.figure(figsize=figsize)
+		gs = GridSpec(1,1)
+
+		axa = fig.add_subplot(gs[0,0])
+		axa.plot(wavelength*1e9, no, label='ordinary')
+		axa.plot(wavelength*1e9, ne, label='extraordinary')
+		axa.legend()
+		axa.set_xlabel('Wavelength [nm]')
+		axa.set_ylabel('Refractive Index')
+		axa.set_title('Refractive Indices')
+
+		fig.set_tight_layout(True)
+		fig.show()
+
 
 if __name__ == '__main__':
-	data = QuasiPhaseMatching(lambda_p=800e-9, temperature=25, crystal_period=22e-6, material='MgO:PPSLT')
+	data = QuasiPhaseMatching(lambda_p=349e-9, temperature=25, crystal_period=22e-6, material='PPLBGO')
 	# data2 = QuasiPhaseMatching(lambda_p=750e-9, temperature=24.5, crystal_period=22e-6, material='MgO:PPSLT_Dolev')
 
-	lambda_p = 380e-9
+	lambda_p = 349e-9
 	lambda_s, lambda_i = data.generate_signal_idler_wavelengths(lambda_p=lambda_p, lambda_s_min=500e-9, 
 		lambda_s_max=760e-9, num_points=2**16)
 
 	ne_p, no_p = data.sellmeier_equations(wavelength=lambda_p)
 	ne_s, no_s = data.sellmeier_equations(wavelength=760e-9)
 	ne_i, no_i = data.sellmeier_equations(wavelength=760e-9)
+
+	wavelength = np.linspace(300e-9, 750e-9, 2**12)
+	ne, no = data.sellmeier_equations(wavelength=wavelength)
+
+	plt.figure()
+	plt.plot(wavelength*1e9, no, label='ordinary')
+	plt.plot(wavelength*1e9, ne, label='extraordinary')
+	plt.legend()
+	plt.xlabel('Wavelength [nm]')
+	plt.ylabel('Refractive Index')
+	plt.tight_layout()
+
+	plt.show()
 
 
