@@ -50,7 +50,7 @@ class QuasiPhaseMatching():
 		self.temperature = temperature
 		self.crystal_period = self.temperature_dependent_grating_period(crystal_period=crystal_period, material=material)
 		if material in ('PPLN_Zelmon', 'MgO:PPLN_Zelmon', 'MgO:PPLN_Gayer', 'MgO:PPLN',
-		 'MgO:PPSLT_Dolev', 'MgO:PPSLT', 'PPLBGO', 'LBGO'):
+		 'MgO:PPSLT_Dolev', 'MgO:PPSLT', 'PPLBGO', 'LBGO', 'PPSLT', 'PPLN'):
 			self.ne_p, self.no_p = self.sellmeier_equations(wavelength=lambda_p, lvl=1)
 		else:
 			self.ne_p = self.sellmeier_equations(wavelength=lambda_p, lvl=1)
@@ -170,7 +170,7 @@ class QuasiPhaseMatching():
 			reference_text = f'Zelmon et al. 1997 (DOI: 10.1364/JOSAB.14.003319)'
 			refractive_index_text = f'n_e, n_o'
 			temperature_text = f'No'
-		elif material in ('MgO:PPLN_Gayer', 'MgO:PPLN'): # Following Gayer et al. 2008 (DOI: 10.1007/s00340-008-2998-2)
+		elif material in ('MgO:PPLN_Gayer', 'MgO:PPLN', 'PPLN'): # Following Gayer et al. 2008 (DOI: 10.1007/s00340-008-2998-2)
 			self._a_coef_ne = [5.756, 0.0983, 0.2020, 189.32, 12.52, 1.32e-2]
 			self._a_coef_no = [5.653, 0.1185, 0.2091, 89.61, 10.85, 1.97e-2]
 			self._b_coef_ne = [2.860e-6, 4.700e-8, 6.113e-8, 1.516e-4]
@@ -181,7 +181,7 @@ class QuasiPhaseMatching():
 			reference_text = f'Gayer et al. 2008 (DOI: 10.1007/s00340-008-2998-2)'
 			refractive_index_text = f'n_e, n_o'
 			temperature_text = f'Yes'
-		elif material in ('MgO:PPSLT_Dolev', 'MgO:PPSLT'): # Following Dolev et al. 2009 (DOI: 10.1007/s00340-009-3502-3)
+		elif material in ('MgO:PPSLT_Dolev', 'MgO:PPSLT', 'PPLST'): # Following Dolev et al. 2009 (DOI: 10.1007/s00340-009-3502-3)
 			self._a_coef_ne = [4.5615, 0.08488, 0.1927, 5.5832, 8.3067, 0.021696]
 			self._b_coef_ne = [4.782e-7, 3.0913e-8, 2.7326e-8, 1.4837e-5, 1.3647e-7]
 			self._a_coef_no = [4.5082, 0.084888, 0.19552, 1.1570, 8.2517, 0.0237]
@@ -311,7 +311,7 @@ class QuasiPhaseMatching():
 
 			return n_e, n_o
 
-		elif material in ('MgO:PPLN_Gayer', 'MgO:PPLN'):
+		elif material in ('MgO:PPLN_Gayer', 'MgO:PPLN', 'PPLN'):
 			self._f = (temperature - 24.5) * (temperature + 570.82) # In Celcius
 
 			n_e = np.sqrt(self._a_coef_ne[0] + 
@@ -337,7 +337,7 @@ class QuasiPhaseMatching():
 							self._a_coef[5]*(wavelength**2))
 			return n_e
 
-		elif material in ('MgO:PPSLT_Dolev', 'MgO:PPSLT'):
+		elif material in ('MgO:PPSLT_Dolev', 'MgO:PPSLT', 'PPSLT'):
 			self._f = (temperature - 24.5)*(temperature + 24.5 + 2*273.16)
 
 			n_e = np.sqrt(self._a_coef_ne[0] + 
@@ -1518,11 +1518,14 @@ class QuasiPhaseMatching():
 		# Create a single legend
 		axa.legend(handlesa, labelsa, loc='upper right', title=material)
 
-		textstra = f'$\\lambda_p$ = {lambda_p*1e9} nm'
+		textstra = (
+			f'$\\mathbf{{{interaction_type}}}$\n'
+			f'$\\lambda_p$ = {lambda_p*1e9:.0f} nm'
+			)
 		propsa = dict(boxstyle='round', facecolor='none', alpha=0.5)
 
 		axa.text(0.23, 0.95, textstra, transform=axa.transAxes, fontsize=10,
-    		verticalalignment='top', horizontalalignment='right', bbox=propsa)
+    		verticalalignment='top', horizontalalignment='right', multialignment='center', bbox=propsa)
 
 		# axa.axhline(y=20, color='grey', linestyle='--')
 
@@ -1658,21 +1661,73 @@ if __name__ == '__main__':
 	lambda_s, lambda_i = data.generate_signal_idler_wavelengths(lambda_p=lambda_p, lambda_s_min=500e-9, 
 		lambda_s_max=760e-9, num_points=2**16)
 
-	ne_p, no_p = data.sellmeier_equations(wavelength=lambda_p)
-	ne_s, no_s = data.sellmeier_equations(wavelength=760e-9)
-	ne_i, no_i = data.sellmeier_equations(wavelength=760e-9)
+	ne_p, no_p = data.sellmeier_equations(wavelength=lambda_p, material='PPLBGO')
+	ne_s, no_s = data.sellmeier_equations(wavelength=lambda_p*2, material='PPLBGO')
+	ne_i, no_i = data.sellmeier_equations(wavelength=lambda_p*2, material='PPLBGO')
 
-	wavelength = np.linspace(300e-9, 750e-9, 2**12)
-	ne, no = data.sellmeier_equations(wavelength=wavelength)
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=750e-9, material='PPLBGO', temperature=22, interaction_type='ooo', ylim=(5.7, 6.9))
 
-	plt.figure()
-	plt.plot(wavelength*1e9, no, label='ordinary')
-	plt.plot(wavelength*1e9, ne, label='extraordinary')
-	plt.legend()
-	plt.xlabel('Wavelength [nm]')
-	plt.ylabel('Refractive Index')
-	plt.tight_layout()
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='eee', ylim=(5, 6.8))
 
-	plt.show()
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='eoo', ylim=(7.5, 15))
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='oee', ylim=(4, 4.4))
 
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='oeo', ylim=(8, 9))
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='ooe', ylim=(3.2, 3.8))
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='eoe', ylim=(4, 5.6))
+	# data.plot_find_crystal_period(lambda_p=349e-9, lambda_s_min=500e-9, lambda_s_max=698e-9, material='PPLBGO', temperature=22, interaction_type='eeo', ylim=(15, 29))
+
+	interaction_types_PPLBGO = [
+		('ooo', (5.7, 6.9)),
+		('eee', (5, 6.8)),
+		('eoo', (7.5, 15)),
+		('oee', (4, 4.4)),
+		('oeo', (8, 9)),
+		('ooe', (3.2, 3.8)),
+		('eoe', (4, 5.6)),
+		('eeo', (15, 29)),
+	]
+
+	for interaction, ylim in interaction_types_PPLBGO:
+		fig, ax = data.plot_find_crystal_period(
+			lambda_p=349e-9,
+			lambda_s_min=500e-9,
+			lambda_s_max=698e-9,
+			material='PPLBGO',
+			temperature=22,
+			interaction_type=interaction,
+			ylim=ylim
+		)
+
+		# fig.savefig(rf'C:\Users\h_las\OneDrive\RIKEN\Lab\Crystals\PPLBGO for IMRA\crystal_periods_{interaction}.png', dpi=300, bbox_inches='tight')
+		# plt.close(fig)  # important to avoid memory buildup
+
+
+	periods_temperature = []
+
+	temperatures = np.linspace(20, 100, 50)
+
+	for temp in temperatures:
+
+		ne_p, no_p = data.sellmeier_equations(wavelength=lambda_p, material='PPLBGO', temperature=temp)
+		ne_s, no_s = data.sellmeier_equations(wavelength=lambda_p*2, material='PPLBGO', temperature=temp)
+		ne_i, no_i = data.sellmeier_equations(wavelength=lambda_p*2, material='PPLBGO', temperature=temp)
+		period = data.phase_matching_periods(n_p=ne_p, n_s=ne_s, n_i=ne_i, lambda_p=lambda_p, lambda_s=lambda_p*2, lambda_i=lambda_p*2, temperature=temp)
+
+		periods_temperature.append(period)
+
+	periods_temperature = np.asarray(periods_temperature)
+
+
+	fig = plt.figure()
+	gs = GridSpec(1,1, figure=fig)
+
+	axa = fig.add_subplot(gs[0,0])
+	axa.plot(temperatures, periods_temperature*1e6)
+	axa.set_xlabel('Temperature [$\degree$C]')
+	axa.set_ylabel('Crystal period $\Lambda$ [$\mu$m]')
+	axa.set_title('Change in QPM for degenerate case @ 698 nm')
+
+	fig.set_tight_layout(True)
+	fig.show()
 
