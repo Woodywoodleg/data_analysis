@@ -22,6 +22,7 @@ import inspect
 import functools
 from scipy.optimize import root_scalar
 
+
 # Functions for making the print of the method docstrings look better
 # Removes the 2 tab indents made by the code block alignment
 def clean_docstring(method):
